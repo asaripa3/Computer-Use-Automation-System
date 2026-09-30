@@ -1,0 +1,32 @@
+{% extends "_content.html" %}
+{% block body %}
+{% if message %}<div class="infoBox">{{ message }}</div>{% endif %}
+<table cellpadding="0" cellspacing="0" border="0" width="560">
+  <tr><td class="sectionBar">Member Lookup</td></tr>
+  <tr><td class="panel">
+    <form name="frmSearch" method="post" action="{{ url_for('console_search') }}">
+      <input type="hidden" name="__VIEWSTATE" value="{{ viewstate }}">
+      <table cellpadding="2" cellspacing="0" border="0">
+        <tr>
+          <td class="fieldLabel">Member Number</td>
+          <td><input type="text" name="txtMemberNo" id="{{ ctl('txtMemberNo') }}" size="16" maxlength="10"></td>
+          <td style="padding-left:12px;color:#6a6a6a">exact match</td>
+        </tr>
+        <tr>
+          <td class="fieldLabel">Surname</td>
+          <td><input type="text" name="txtSurname" id="{{ ctl('txtSurname') }}" size="24" maxlength="40"></td>
+          <td style="padding-left:12px;color:#6a6a6a">begins with</td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td colspan="2" style="padding-top:6px">
+            <input type="submit" name="btnSearch" id="{{ ctl('btnSearch') }}" value="Search">
+            &nbsp;
+            <a href="javascript:void(0)" onclick="document.forms['frmSearch'].reset();return false;">Clear</a>
+          </td>
+        </tr>
+      </table>
+    </form>
+  </td></tr>
+</table>
+{% endblock %}

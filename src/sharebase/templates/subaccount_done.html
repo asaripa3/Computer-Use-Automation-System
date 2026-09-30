@@ -1,0 +1,23 @@
+{% extends "_content.html" %}
+{% block body %}
+<table cellpadding="0" cellspacing="0" border="0" width="560">
+  <tr><td class="sectionBar">Sub-Account Opened</td></tr>
+  <tr><td class="panel">
+    <div class="okBox">
+      <b>Sub-account opened successfully.</b>
+    </div>
+    <table cellpadding="1" cellspacing="0" border="0">
+      <tr><td class="fieldLabel">New Account Number</td><td class="fieldValue">{{ account.number }}</td></tr>
+      <tr><td class="fieldLabel">Account Type</td><td class="fieldValue">{{ account.description }}</td></tr>
+      <tr><td class="fieldLabel">Opening Balance</td><td class="fieldValue">{{ balance_display }}</td></tr>
+      <tr><td class="fieldLabel">Confirmation Number</td><td class="fieldValue">{{ confirmation }}</td></tr>
+      <tr><td class="fieldLabel">Posted</td><td class="fieldValue">{{ posted_at }}</td></tr>
+    </table>
+    <div style="margin-top:10px">
+      <a href="{{ url_for('console_member', member_id=member.member_id) }}">Return to Member</a>
+      &nbsp;|&nbsp;
+      <a href="{{ url_for('console_search') }}">New Search</a>
+    </div>
+  </td></tr>
+</table>
+{% endblock %}

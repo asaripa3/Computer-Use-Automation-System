@@ -1,0 +1,50 @@
+<html>
+<head>
+  <title>ShareBase &#8212; Sign On</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='sharebase.css') }}">
+  <script type="text/javascript">
+    // Legacy frame-breakout: an expiry redirect inside the content frame must
+    // repaint the whole window, not render a login form in a 600px panel.
+    if (top !== self) { top.location.href = window.location.href; }
+  </script>
+</head>
+<body>
+<div class="loginShell">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" class="panel">
+  <tr><td class="pageHead" colspan="2">ShareBase Member Servicing &#8212; Sign On</td></tr>
+  <tr><td colspan="2" style="padding:8px">
+    {% if reason == 'expired' %}
+      <div class="warnBox">Your session has expired due to inactivity. Please sign on again.</div>
+    {% elif reason == 'required' %}
+      <div class="infoBox">Sign on is required to access the servicing console.</div>
+    {% elif reason == 'invalid' %}
+      <div class="errBox">Sign-on failed. The operator ID or password is not valid.</div>
+    {% endif %}
+
+    <form name="frmSignOn" method="post" action="{{ url_for('login') }}">
+      <input type="hidden" name="__VIEWSTATE" value="{{ viewstate }}">
+      <table cellpadding="2" cellspacing="0" border="0">
+        <tr>
+          <td class="fieldLabel">Operator ID</td>
+          <td><input type="text" name="txtOperator" id="{{ ctl('txtOperator') }}" size="24" maxlength="32"></td>
+        </tr>
+        <tr>
+          <td class="fieldLabel">Password</td>
+          <td><input type="password" name="txtPassword" id="{{ ctl('txtPassword') }}" size="24" maxlength="64"></td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td style="padding-top:6px">
+            <input type="submit" name="btnSignOn" id="{{ ctl('btnSignOn') }}" value="Sign On">
+          </td>
+        </tr>
+      </table>
+    </form>
+  </td></tr>
+  <tr><td class="statusBar" colspan="2">
+    Authorized use only. Activity is logged.
+  </td></tr>
+</table>
+</div>
+</body>
+</html>

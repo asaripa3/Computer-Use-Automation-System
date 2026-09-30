@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Local config & secrets
+.env
+.claude/
+
+# Run output
+evidence/**/screenshots/
+evidence/**/*.png
+.sharebase_state.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+#Assesment materials
+*docs/

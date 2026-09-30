@@ -1,0 +1,70 @@
+{% extends "_content.html" %}
+{% block body %}
+<table cellpadding="0" cellspacing="0" border="0" width="620">
+  <tr><td class="sectionBar">Open Sub-Account &#8212; Member {{ member.member_id }} ({{ member.display_name }})</td></tr>
+  <tr><td class="panel">
+
+    {% if errors %}
+      <div class="errBox">
+        <b>The request could not be processed:</b>
+        <ul style="margin:4px 0 0 16px;padding:0">
+          {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form name="frmSubAcct" method="post" action="{{ url_for('console_subaccount', member_id=member.member_id) }}">
+      <input type="hidden" name="__VIEWSTATE" value="{{ viewstate }}">
+      <table cellpadding="2" cellspacing="0" border="0">
+        <tr>
+          <td class="fieldLabel">Account Type</td>
+          <td>
+            <select name="ddlAcctType" id="{{ ctl('ddlAcctType') }}">
+              <option value="">-- select --</option>
+              {% for code, label in account_types %}
+              <option value="{{ code }}" {% if form.ddlAcctType == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="fieldLabel">Nickname</td>
+          <td>
+            <input type="text" name="txtNickname" id="{{ ctl('txtNickname') }}" size="28" maxlength="24"
+                   value="{{ form.txtNickname }}">
+            <span style="color:#6a6a6a">&nbsp;letters and digits only</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="fieldLabel">Initial Deposit</td>
+          <td>
+            <input type="text" name="txtDeposit" id="{{ ctl('txtDeposit') }}" size="12" maxlength="12"
+                   value="{{ form.txtDeposit }}">
+            <span style="color:#6a6a6a">&nbsp;minimum {{ min_deposit }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="fieldLabel">Funding Source</td>
+          <td>
+            <select name="ddlFunding" id="{{ ctl('ddlFunding') }}">
+              <option value="">-- select --</option>
+              {% for a in funding_sources %}
+              <option value="{{ a.number }}" {% if form.ddlFunding == a.number %}selected{% endif %}>{{ a.number }} &#8212; {{ a.description }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td style="padding-top:8px">
+            <input type="submit" name="btnContinue" id="{{ ctl('btnContinue') }}" value="Continue">
+            &nbsp;
+            <a href="{{ url_for('console_member', member_id=member.member_id) }}">Cancel</a>
+          </td>
+        </tr>
+      </table>
+    </form>
+
+  </td></tr>
+</table>
+{% endblock %}

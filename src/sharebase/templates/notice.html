@@ -1,0 +1,16 @@
+{% extends "_content.html" %}
+{% block body %}
+<table cellpadding="0" cellspacing="0" border="0" width="560">
+  <tr><td class="sectionBar">System Notice</td></tr>
+  <tr><td class="panel">
+    <div class="warnBox">
+      <b>Scheduled maintenance advisory {{ notice_code }}.</b><br>
+      Share posting will be unavailable between 02:00 and 04:00 Central.
+      Acknowledge this notice to continue to the requested page.
+    </div>
+    <form name="frmNotice" method="get" action="{{ return_to }}">
+      <input type="submit" name="btnAck" id="{{ ctl('btnAck') }}" value="Continue">
+    </form>
+  </td></tr>
+</table>
+{% endblock %}

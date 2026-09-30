@@ -1,0 +1,18 @@
+<html>
+<head>
+  <title>{{ page_title }}</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='sharebase.css') }}">
+</head>
+<body>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td class="pageHead">{{ page_title }}</td></tr>
+  <tr><td style="padding:8px">
+    {% block body %}{% endblock %}
+  </td></tr>
+  <tr><td class="statusBar">
+    ShareBase 4.2.1 &nbsp;|&nbsp; Operator: {{ operator }} &nbsp;|&nbsp; {{ rendered_at }}
+    &nbsp;|&nbsp; <span style="color:#6a6a6a">vs={{ viewstate }}</span>
+  </td></tr>
+</table>
+</body>
+</html>

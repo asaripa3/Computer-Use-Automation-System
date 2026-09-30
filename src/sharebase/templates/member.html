@@ -1,0 +1,68 @@
+{% extends "_content.html" %}
+{% block body %}
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr><td class="sectionBar">Member {{ member.member_id }} &#8212; {{ member.display_name }}</td></tr>
+  <tr><td class="panel">
+
+    {% if member.status != 'ACTIVE' %}
+      <div class="warnBox">This member record is <b>{{ member.status }}</b> and may not be serviced.</div>
+    {% endif %}
+    {% if member.restricted %}
+      <div class="warnBox">Servicing restriction on file. Account opening requires supervisor authorization.</div>
+    {% endif %}
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+      <td valign="top" width="50%">
+        <table cellpadding="1" cellspacing="0" border="0">
+          <tr><td class="fieldLabel">Member Number</td><td class="fieldValue">{{ member.member_id }}</td></tr>
+          <tr><td class="fieldLabel">Name</td><td class="fieldValue">{{ member.display_name }}</td></tr>
+          <tr><td class="fieldLabel">Date of Birth</td><td class="fieldValue">{{ dob }}</td></tr>
+          <tr><td class="fieldLabel">SSN</td><td class="fieldValue">***-**-{{ member.ssn_last4 }}</td></tr>
+        </table>
+      </td>
+      <td valign="top" width="50%">
+        <table cellpadding="1" cellspacing="0" border="0">
+          <tr><td class="fieldLabel">Branch</td><td class="fieldValue">{{ member.branch }}</td></tr>
+          <tr><td class="fieldLabel">Status</td><td class="fieldValue">{{ member.status }}</td></tr>
+          <tr><td class="fieldLabel">Telephone</td><td class="fieldValue">{{ member.phone }}</td></tr>
+          <tr><td class="fieldLabel">E-Mail</td><td class="fieldValue">{{ member.email }}</td></tr>
+        </table>
+      </td>
+    </tr></table>
+
+  </td></tr>
+  <tr><td class="sectionBar" style="margin-top:8px">Share &amp; Deposit Accounts</td></tr>
+  <tr><td class="panel">
+    <table class="grid" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <th>Account No</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Opened</th>
+        <th>Status</th>
+        <th style="text-align:right">Current Balance</th>
+      </tr>
+      {% for a in accounts %}
+      <tr class="{{ 'gridRowAlt' if loop.index0 % 2 else 'gridRow' }}">
+        <td>{{ a.number }}</td>
+        <td>{{ a.kind }}</td>
+        <td>{{ a.description }}</td>
+        <td>{{ a.opened_display }}</td>
+        <td>{{ a.status }}</td>
+        <td class="amount">{{ a.balance_display }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </td></tr>
+  <tr><td class="panel" style="margin-top:6px">
+    <b>Servicing Actions:</b>&nbsp;
+    <a href="{{ url_for('console_subaccount', member_id=member.member_id) }}">Open Sub-Account</a>
+    &nbsp;|&nbsp;
+    <a href="javascript:alert('Not licensed for this institution.')">Address Maintenance</a>
+    &nbsp;|&nbsp;
+    <a href="javascript:alert('Not licensed for this institution.')">Stop Payment</a>
+    &nbsp;|&nbsp;
+    <a href="{{ url_for('console_search') }}">New Search</a>
+  </td></tr>
+</table>
+{% endblock %}

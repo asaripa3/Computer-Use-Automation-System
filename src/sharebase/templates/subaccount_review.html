@@ -1,0 +1,28 @@
+{% extends "_content.html" %}
+{% block body %}
+<table cellpadding="0" cellspacing="0" border="0" width="560">
+  <tr><td class="sectionBar">Confirm Sub-Account Request</td></tr>
+  <tr><td class="panel">
+    <div class="infoBox">
+      Review the request below. No account is created until <b>Confirm</b> is submitted.
+    </div>
+    <table cellpadding="1" cellspacing="0" border="0">
+      <tr><td class="fieldLabel">Member Number</td><td class="fieldValue">{{ member.member_id }}</td></tr>
+      <tr><td class="fieldLabel">Member Name</td><td class="fieldValue">{{ member.display_name }}</td></tr>
+      <tr><td class="fieldLabel">Account Type</td><td class="fieldValue">{{ pending.type_label }}</td></tr>
+      <tr><td class="fieldLabel">Nickname</td><td class="fieldValue">{{ pending.nickname }}</td></tr>
+      <tr><td class="fieldLabel">Initial Deposit</td><td class="fieldValue">{{ pending.deposit_display }}</td></tr>
+      <tr><td class="fieldLabel">Funding Source</td><td class="fieldValue">{{ pending.funding }}</td></tr>
+    </table>
+    <form name="frmConfirm" method="post" action="{{ url_for('console_subaccount_commit', member_id=member.member_id) }}"
+          style="margin-top:10px">
+      <input type="hidden" name="__VIEWSTATE" value="{{ viewstate }}">
+      <input type="submit" name="btnConfirm" id="{{ ctl('btnConfirm') }}" value="Confirm">
+      &nbsp;
+      <a href="{{ url_for('console_subaccount', member_id=member.member_id) }}">Back</a>
+      &nbsp;|&nbsp;
+      <a href="{{ url_for('console_member', member_id=member.member_id) }}">Cancel Request</a>
+    </form>
+  </td></tr>
+</table>
+{% endblock %}

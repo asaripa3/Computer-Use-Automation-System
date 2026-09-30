@@ -1,0 +1,59 @@
+<html>
+<head>
+  <title>ShareBase &#8212; Fault Injection Console</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='sharebase.css') }}">
+</head>
+<body>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td class="pageHead">Fault Injection Console &#8212; harness control, not part of ShareBase</td></tr>
+  <tr><td style="padding:10px">
+
+    <div class="infoBox">
+      This page is not part of the simulated application. It arms the runtime
+      conditions a replay has to survive. Each fault is labelled with the
+      outcome class it is meant to provoke.
+      {% if armed %}<br><br><b>Currently armed:</b> {{ armed|join(', ') }}{% endif %}
+    </div>
+
+    <form method="post" action="{{ url_for('admin_faults') }}">
+      <table class="grid" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <th style="width:28px">&nbsp;</th>
+          <th>Fault</th>
+          <th>Class</th>
+          <th>Behaviour</th>
+          <th>Fires</th>
+        </tr>
+        {% for spec in specs %}
+        <tr class="{{ 'gridRowAlt' if loop.index0 % 2 else 'gridRow' }}">
+          <td><input type="checkbox" name="{{ spec.key }}" value="true"
+                     {% if state[spec.key].enabled %}checked{% endif %}></td>
+          <td><b>{{ spec.label }}</b><br><span style="color:#6a6a6a">{{ spec.key }}</span></td>
+          <td class="tax{{ spec.taxonomy|capitalize }}">{{ spec.taxonomy }}</td>
+          <td>{{ spec.description }}</td>
+          <td class="amount">{{ spec.fires if spec.fires else 'until off' }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <table cellpadding="2" cellspacing="0" border="0" style="margin-top:8px">
+        <tr>
+          <td class="fieldLabel">Delay (seconds)</td>
+          <td><input type="text" name="delay_seconds" size="6" value="{{ delay_seconds }}"></td>
+        </tr>
+      </table>
+
+      <div style="margin-top:8px">
+        <input type="submit" name="btnApply" value="Apply">
+      </div>
+    </form>
+
+    <form method="post" action="{{ url_for('admin_reset') }}" style="margin-top:10px">
+      <input type="submit" name="btnReset" value="Reset faults and member data">
+    </form>
+
+  </td></tr>
+  <tr><td class="statusBar">Harness endpoint: POST {{ url_for('admin_faults') }} with JSON, e.g. {"hard_error": true}</td></tr>
+</table>
+</body>
+</html>

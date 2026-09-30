@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "computer-use-automation"
+version = "0.1.0"
+description = "LLM-discovered, deterministically replayable automation for legacy back-office applications"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.1",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# src/ so the packages import; tests/ so the shared helpers module resolves
+# from the per-component test folders.
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
+addopts = "-q"

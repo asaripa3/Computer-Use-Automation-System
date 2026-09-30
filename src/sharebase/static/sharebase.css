@@ -1,0 +1,186 @@
+/* ShareBase Member Servicing Console -- presentation layer, rev 4.2.1
+   Styling is deliberately period-correct: fixed pixel type, table chrome,
+   beveled borders. No utility classes, no semantic hooks. */
+
+body {
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 11px;
+  color: #000000;
+  background-color: #d4d0c8;
+  margin: 0;
+  padding: 0;
+}
+
+td, th, input, select {
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 11px;
+}
+
+a {
+  color: #00339a;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+a:visited { color: #00339a; }
+
+.pageHead {
+  background-color: #003a70;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-bottom: 2px solid #8a9bb0;
+}
+
+.sectionBar {
+  background-color: #8a9bb0;
+  color: #ffffff;
+  font-weight: bold;
+  padding: 3px 6px;
+  border-top: 1px solid #ffffff;
+}
+
+.panel {
+  background-color: #f1efe9;
+  border-top: 1px solid #ffffff;
+  border-left: 1px solid #ffffff;
+  border-right: 1px solid #848284;
+  border-bottom: 1px solid #848284;
+  padding: 6px;
+}
+
+.fieldLabel {
+  text-align: right;
+  padding: 2px 6px 2px 0;
+  white-space: nowrap;
+  color: #29292b;
+}
+
+.fieldValue {
+  padding: 2px 12px 2px 0;
+  font-weight: bold;
+}
+
+.grid {
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.grid th {
+  background-color: #8a9bb0;
+  color: #ffffff;
+  text-align: left;
+  padding: 3px 6px;
+  border: 1px solid #6c7a8c;
+  white-space: nowrap;
+}
+
+.grid td {
+  padding: 3px 6px;
+  border: 1px solid #b8b4ac;
+}
+
+.gridRowAlt { background-color: #eef1f5; }
+
+.gridRow:hover, .gridRowAlt:hover { background-color: #ffffcc; }
+
+.amount { text-align: right; font-family: "Courier New", monospace; }
+
+input[type="text"], input[type="password"], select {
+  border: 1px solid #7f9db9;
+  background-color: #ffffff;
+  padding: 1px 2px;
+}
+
+input[type="submit"], input[type="button"] {
+  background-color: #e3e1dc;
+  border-top: 1px solid #ffffff;
+  border-left: 1px solid #ffffff;
+  border-right: 1px solid #848284;
+  border-bottom: 1px solid #848284;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.errBox {
+  background-color: #fff4f4;
+  border: 1px solid #a80000;
+  color: #a80000;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+
+.warnBox {
+  background-color: #fffbe6;
+  border: 1px solid #b38f00;
+  color: #5c4800;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+
+.okBox {
+  background-color: #f2fbf2;
+  border: 1px solid #1f7a1f;
+  color: #14521a;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+
+.infoBox {
+  background-color: #eef4fb;
+  border: 1px solid #4a6c94;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+
+.navFrame {
+  background-color: #003a70;
+  color: #ffffff;
+  padding: 0;
+}
+
+.navFrame a {
+  color: #cfe0f5;
+  text-decoration: none;
+  display: block;
+  padding: 4px 10px;
+  border-bottom: 1px solid #1a5288;
+}
+
+.navFrame a:hover { background-color: #1a5288; color: #ffffff; }
+
+.navGroup {
+  color: #8fb4dc;
+  font-weight: bold;
+  padding: 8px 10px 3px 10px;
+  border-bottom: 1px solid #1a5288;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.statusBar {
+  background-color: #d4d0c8;
+  border-top: 1px solid #848284;
+  padding: 3px 8px;
+  color: #29292b;
+}
+
+.stackTrace {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  background-color: #ffffff;
+  border: 1px solid #848284;
+  padding: 8px;
+  white-space: pre;
+  color: #5a0000;
+}
+
+.loginShell {
+  width: 340px;
+  margin: 80px auto 0 auto;
+}
+
+.taxBusiness { color: #14521a; font-weight: bold; }
+.taxRecoverable { color: #5c4800; font-weight: bold; }
+.taxHard { color: #a80000; font-weight: bold; }

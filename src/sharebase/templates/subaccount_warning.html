@@ -1,0 +1,20 @@
+{% extends "_content.html" %}
+{% block body %}
+<table cellpadding="0" cellspacing="0" border="0" width="560">
+  <tr><td class="sectionBar">Servicing Advisory</td></tr>
+  <tr><td class="panel">
+    <div class="warnBox">
+      <b>Advisory {{ advisory_code }}.</b><br>
+      This member already holds a club share of a similar type. Opening an
+      additional sub-account may duplicate an existing product enrollment.
+    </div>
+    <form name="frmAdvisory" method="post" action="{{ url_for('console_subaccount_review', member_id=member.member_id) }}">
+      <input type="hidden" name="__VIEWSTATE" value="{{ viewstate }}">
+      <input type="hidden" name="hdnAdvisoryAck" value="{{ advisory_code }}">
+      <input type="submit" name="btnAcknowledge" id="{{ ctl('btnAcknowledge') }}" value="Acknowledge and Continue">
+      &nbsp;
+      <a href="{{ url_for('console_member', member_id=member.member_id) }}">Abandon Request</a>
+    </form>
+  </td></tr>
+</table>
+{% endblock %}
