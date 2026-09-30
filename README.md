@@ -19,7 +19,7 @@ Every completed step has a walkthrough in [`docs/steps/`](docs/steps/).
 | 1 | [The surface layer — perceive and act](docs/steps/step-1-surface-layer.md) | **done** — 63 tests |
 | 2 | [The capability contract and guardrails](docs/steps/step-2-capability-contract.md) | **done** — 95 tests |
 | 3 | [Deterministic replay](docs/steps/step-3-replay.md) | **done** — 53 tests |
-| 4 | LLM discovery loop and recorder | not started |
+| 4 | [The discovery loop](docs/steps/step-4-discovery.md) | **done** — 35 tests, real run in `evidence/` |
 | 5 | Escalation and control transfer | not started |
 | 6 | Evidence runs and `REPORT.md` | not started |
 
@@ -51,6 +51,10 @@ cp .env.example .env
 `.env.example` holds local demo values and no real secrets. The ShareBase
 sign-on credentials exist only so the automation has a login step to learn.
 
+**An API key is needed for one thing only.** Recording a capability calls a
+model once; replaying one never does. Everything except `make discover`
+runs with no key at all, including the full test suite.
+
 ## Running
 
 ```bash
@@ -59,6 +63,26 @@ make test                                  # the full suite
 make observe URL=/console/member/12345     # what the surface layer sees on a page
 make review                                # the capability catalog
 make help                                  # every available command
+```
+
+## Recording a capability
+
+A model drives the application once, and what it learned is compiled into a
+reusable artifact. This is the only place a model is ever called.
+
+```bash
+export OPENAI_API_KEY=...
+make discover GOAL="look up member 12345 and read their current savings balance" \
+              ID=member.savings_balance
+```
+
+Without a key, a recorded run's decisions replay against the live application
+and produce the same artifact — the same tools execute, only the network call
+to the model is skipped:
+
+```bash
+make discover GOAL="..." ID=member.savings_balance \
+              TRANSCRIPT=evidence/discovery-.../transcript.jsonl
 ```
 
 ## Replaying a capability
@@ -87,7 +111,10 @@ a hard failure, reporting which step failed, what it expected and what it
 observed, with a screenshot and a record of everything perceived at that
 moment.
 
-Saved runs of all three are in [`evidence/`](evidence/).
+Saved runs of all three are in [`evidence/`](evidence/), alongside
+[`evidence/discovery-run/`](evidence/discovery-run/) — a real gpt-4.1
+session recording `member.savings_balance@0.1.0`, which replays for a
+member the model never saw.
 
 Sign on with `svc_agent` / `Demo-Pass-1234` (or whatever is in your `.env`).
 

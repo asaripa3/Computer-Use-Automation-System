@@ -189,6 +189,15 @@
       if (el.querySelector("table") || !textOf(el)) continue;
     }
     if (TEXT_TAGS.has(tag) && !ownTextOf(el)) continue;
+
+    // A clickable row is not a control. Legacy grids put an onclick on the
+    // <tr>, and capturing it yields a "button" whose name is the entire row's
+    // concatenated text -- "12345 Ashworth, Dolores Cedar Falls Main ACTIVE 3".
+    // Anything targeting that is pinned to one record forever. The cells
+    // inside are captured with their grid coordinates, are addressable by
+    // column and key, and clicking one reaches the row's handler anyway.
+    if (tag === "tr") continue;
+
     if (!visible) continue;
 
     const coords = tableCoordsFor(el);

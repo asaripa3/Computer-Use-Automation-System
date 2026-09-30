@@ -1,0 +1,257 @@
+{
+  "schema_version": "1.0",
+  "id": "member.savings_balance",
+  "version": "0.1.0",
+  "status": "draft",
+  "title": "look up member 12345 and read their current savings balance",
+  "description": "Looked up the member and read their current savings balance.",
+  "default_timeout_ms": 10000,
+  "surface": {
+    "kind": "web",
+    "entry_url": "http://127.0.0.1:8080/console/search",
+    "requires_origins": [
+      "http://127.0.0.1:8080"
+    ],
+    "app_fingerprint": "ShareBase 4.2.1"
+  },
+  "inputs": [
+    {
+      "name": "member_number",
+      "type": "integer",
+      "description": "The unique member number to look up.",
+      "required": true,
+      "sensitivity": "pii",
+      "example": "12345"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "savings_balance",
+      "type": "money",
+      "description": "The current balance of the member's regular savings account.",
+      "source": {
+        "description": "the Current Balance cell of the row where Type identifies the record",
+        "candidates": [
+          {
+            "strategy": "grid_cell",
+            "robustness": "derived",
+            "rationale": "addressed by column and a key in another column, so it survives the row moving when the record has a different number of rows",
+            "column": "Current Balance",
+            "key_column": "Type",
+            "key_value": {
+              "literal": "SAV"
+            }
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "sensitivity": "none",
+      "optional": false
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "action": "navigate",
+      "description": "Go to /console/search.",
+      "risk": "safe",
+      "url": "/console/search"
+    },
+    {
+      "index": 2,
+      "action": "fill",
+      "description": "Enter Member Number.",
+      "risk": "safe",
+      "target": {
+        "description": "the Member Number control",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "txtMemberNo"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "textbox",
+            "name": "Member Number",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[1]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "member_number"
+      }
+    },
+    {
+      "index": 3,
+      "action": "click",
+      "description": "Click Search.",
+      "risk": "safe",
+      "target": {
+        "description": "the Search control",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "btnSearch"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "accessible name asserted by the application via value; portable to any accessibility API.",
+            "role": "button",
+            "name": "Search",
+            "name_source": "value"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[3]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "Search results for the member are displayed.",
+        "text": "Search Results"
+      }
+    },
+    {
+      "index": 4,
+      "action": "click",
+      "description": "Click Member No.",
+      "risk": "safe",
+      "target": {
+        "description": "the Member No cell of the row matching the supplied member_number",
+        "candidates": [
+          {
+            "strategy": "grid_cell",
+            "robustness": "derived",
+            "rationale": "the run typed member_number to get here, so the row is addressed by that input rather than by the one value this recording happened to use",
+            "column": "Member No",
+            "key_column": "Member No",
+            "key_value": {
+              "from_input": "member_number"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "Member detail page is displayed.",
+        "text": "Member Detail"
+      }
+    }
+  ],
+  "success": {
+    "kind": "text_present",
+    "description": "The member detail page is displayed, showing account balances.",
+    "text": "Member Detail"
+  },
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "kind": "business",
+      "description": "No member record matches the given member number.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the MEMBER_NOT_FOUND banner",
+        "text": "No member records match the search criteria."
+      }
+    }
+  ],
+  "recoveries": [
+    {
+      "name": "maintenance_notice",
+      "description": "A system notice is served in place of the requested page.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the maintenance advisory banner",
+        "text": "Scheduled maintenance advisory"
+      },
+      "action": "dismiss",
+      "max_attempts": 1,
+      "target": {
+        "description": "the Continue button on the notice",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "the notice's only control",
+            "role": "button",
+            "name": "Continue",
+            "name_source": "value"
+          }
+        ],
+        "frame": "contentFrame"
+      }
+    },
+    {
+      "name": "transient_server_error",
+      "description": "A timeout from the data tier that clears on retry.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the timeout error page",
+        "text": "Timeout expired"
+      },
+      "action": "retry",
+      "max_attempts": 2
+    },
+    {
+      "name": "session_expired",
+      "description": "The console session timed out and bounced to sign-on.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the expiry notice",
+        "text": "Your session has expired"
+      },
+      "action": "reauthenticate",
+      "max_attempts": 1
+    }
+  ],
+  "provenance": {
+    "recorded_at": "2026-09-30T07:16:56+00:00",
+    "recorded_by": "openai:gpt-4.1",
+    "discovery_run": "",
+    "goal": "look up member 12345 and read their current savings balance"
+  }
+}

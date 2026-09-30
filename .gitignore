@@ -14,14 +14,12 @@ venv/
 .sharebase_state.json
 
 # evidence/ is a deliverable and is committed, screenshots included.
-# Ad-hoc runs from the CLI are not.
-evidence/replay-member.*/
-evidence/discovery-*/
+# The curated runs (discovery-run, replay-*) are tracked; ad-hoc
+# timestamped runs from the CLI are not.
+evidence/discovery-*-20*/
+evidence/replay-*-20*/
 
 # OS / editor
 .DS_Store
 .idea/
 .vscode/
-
-#Assesment materials
-*docs/

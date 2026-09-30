@@ -42,10 +42,13 @@ test-policy:  ## Only the guardrail tests (allowlist, risk, redaction)
 test-replay:  ## Only the replay tests (drives a real browser; ~3 min)
 	$(PY) -m pytest tests/replay -v
 
+test-discovery:  ## Only the discovery tests (scripted model, no API key)
+	$(PY) -m pytest tests/explore -v
+
 test-fast:  ## Everything except the browser tests (about a second)
 	$(PY) -m pytest tests/sharebase tests/contract tests/policy \
 		tests/surface/test_naming.py tests/surface/test_observation.py \
-		tests/replay/test_resolve.py
+		tests/replay/test_resolve.py tests/explore/test_recorder.py
 
 # Arm a fault against a running ShareBase, e.g. `make fault F=hard_error`.
 fault:  ## Arm one fault (F=<name>) on a running ShareBase
@@ -76,6 +79,12 @@ replay:  ## Replay a capability (CAP=<id@version> IN="--input k=v")
 	@test -n "$(CAP)" || (echo 'usage: make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"'; exit 1)
 	@$(PY) -m replay.cli $(CAP) $(IN)
 
+# Record a new capability by letting a model drive the app. Needs
+# OPENAI_API_KEY; add TRANSCRIPT=<path> to replay a recorded run instead.
+discover:  ## Record a capability with a model (GOAL="..." ID=<id>)
+	@test -n "$(GOAL)" || (echo 'usage: make discover GOAL="look up member 12345 and read their savings balance" ID=member.savings_balance'; exit 1)
+	$(PY) -m explore.cli "$(GOAL)" --id $(or $(ID),recorded.capability) $(if $(TRANSCRIPT),--transcript $(TRANSCRIPT))
+
 evidence:  ## Produce the evidence runs in evidence/
 	$(PY) tools/make_evidence.py
 
@@ -83,4 +92,4 @@ clean:  ## Remove caches and build leftovers
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 	rm -rf .pytest_cache *.egg-info src/*.egg-info
 
-.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-replay test-fast fault faults reset clean observe capabilities review replay evidence
+.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-replay test-discovery test-fast fault faults reset clean observe capabilities review replay discover evidence

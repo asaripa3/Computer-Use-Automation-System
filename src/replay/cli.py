@@ -20,6 +20,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import envfile
 from contract import io
 from contract.overlay import apply_overlay, load_overlay
 from policy.allowlist import Allowlist
@@ -126,6 +127,7 @@ def render(result) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    envfile.load()
     parser = argparse.ArgumentParser(prog="replay.cli", description=__doc__)
     parser.add_argument("ref", help="capability reference, id@version")
     parser.add_argument("--input", action="append", metavar="NAME=VALUE",

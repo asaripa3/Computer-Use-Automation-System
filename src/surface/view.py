@@ -52,10 +52,19 @@ def render_table(observation: Observation, table_index: int) -> list[str]:
     if not headers:
         return []
 
-    lines = [f"  table {table_index}:", "    | " + " | ".join(headers) + " |"]
+    # Each row carries the ref of its first cell, so a caller can act on the
+    # row -- open this member's record, select that account. Without it a grid
+    # is readable but not usable, and a flow whose whole point is
+    # search → detail → action has no way to take the middle step.
+    lines = [
+        f"  table {table_index}:",
+        "    | " + " | ".join(["ref", *headers]) + " |",
+    ]
     for _, cells in sorted(rows.items()):
-        values = [(cells.get(h).text if cells.get(h) else "") for h in headers]
-        lines.append("    | " + " | ".join(values) + " |")
+        present = [cells[h] for h in headers if cells.get(h) is not None]
+        ref = present[0].ref if present else ""
+        values = [(cell.text if (cell := cells.get(h)) else "") for h in headers]
+        lines.append("    | " + " | ".join([ref, *values]) + " |")
     return lines
 
 

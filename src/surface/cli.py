@@ -15,11 +15,13 @@ import argparse
 import os
 import sys
 
+import envfile
 from .view import render
 from .browser import browser_session
 
 
 def main(argv: list[str] | None = None) -> int:
+    envfile.load()
     parser = argparse.ArgumentParser(prog="surface.cli", description=__doc__)
     parser.add_argument(
         "path",
