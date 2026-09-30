@@ -1,5 +1,5 @@
-{"at": "2026-09-30T06:34:18.680+00:00", "event": "start", "capability": "member.savings_balance@1.0.0", "tenant": null, "policy": "read-only", "inputs": {"member_id": "<pii:c1867f>"}}
-{"at": "2026-09-30T06:34:18.740+00:00", "event": "step", "index": 1, "action": "navigate", "description": "Open the member lookup form.", "status": "ok", "duration_ms": 58, "attempts": 1}
-{"at": "2026-09-30T06:34:18.792+00:00", "event": "step", "index": 2, "action": "fill", "description": "Enter the member number.", "status": "ok", "duration_ms": 52, "attempts": 1, "resolved_by": "asserted_id"}
-{"at": "2026-09-30T06:34:19.003+00:00", "event": "step", "index": 3, "action": "click", "description": "Run the search.", "status": "ok", "duration_ms": 210, "attempts": 1, "resolved_by": "asserted_id"}
-{"at": "2026-09-30T06:34:19.243+00:00", "event": "step", "index": 4, "action": "click", "description": "Open the matching member's record.", "status": "ok", "duration_ms": 239, "attempts": 1, "resolved_by": "grid_cell"}
+{"at": "2026-09-30T15:45:05.572+00:00", "event": "start", "capability": "member.savings_balance@1.0.0", "tenant": null, "policy": "read-only", "inputs": {"member_id": "<pii:d73a95>"}}
+{"at": "2026-09-30T15:45:05.620+00:00", "event": "step", "index": 1, "action": "navigate", "description": "Open the member lookup form.", "status": "ok", "duration_ms": 47, "attempts": 1}
+{"at": "2026-09-30T15:45:05.649+00:00", "event": "step", "index": 2, "action": "fill", "description": "Enter the member number.", "status": "ok", "duration_ms": 28, "attempts": 1, "resolved_by": "asserted_id"}
+{"at": "2026-09-30T15:45:05.839+00:00", "event": "step", "index": 3, "action": "click", "description": "Run the search.", "status": "ok", "duration_ms": 189, "attempts": 1, "resolved_by": "asserted_id"}
+{"at": "2026-09-30T15:45:06.060+00:00", "event": "step", "index": 4, "action": "click", "description": "Open the matching member's record.", "status": "ok", "duration_ms": 220, "attempts": 1, "resolved_by": "grid_cell"}

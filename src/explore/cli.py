@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         # The fault console stays out of reach during discovery too: a model
         # that could disarm the conditions it is meant to learn about would
         # record a capability that only works on a good day.
-        path_patterns=("/login", "/console/*"),
+        path_patterns=("/login", "/console", "/console/*"),
         allow_irreversible=args.allow_irreversible,
     )
 

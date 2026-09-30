@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Any, Callable
 
 from contract.binding import (
     BindingError, as_step_values, bind_inputs, coerce_output, jsonable,
@@ -39,7 +39,9 @@ from contract.result import (
 from policy.allowlist import Allowlist, PolicyViolation
 from policy.redaction import Redactor
 from policy.risk import Authorization, decide
-from surface.model import Observation, Surface
+from surface.model import ActionFailed, Observation, StaleElement, Surface
+
+from handoff.control import Supervised
 
 from .conditions import first_outcome, first_recovery, holds
 from .evidence import Evidence
@@ -81,9 +83,10 @@ class _Run:
     policy: Allowlist
     authorization: Authorization | None
     evidence: Evidence | None
-    escalate: Callable | None
+    coordinator: Any
     reauthenticate: Callable | None
     recovery_budget: dict[str, int] = field(default_factory=dict)
+    handoffs: list = field(default_factory=list)
     # Where the run should be if it is interrupted. Set when a navigation is
     # issued and refreshed after every settled step.
     resume_url: str = ""
@@ -136,6 +139,10 @@ def await_state(
 
     while True:
         observation = run.surface.observe()
+        # A recorded click can navigate or redirect as well as an explicit
+        # navigate step. Check the observed destination before interpreting
+        # any page content from it.
+        run.policy.check_navigation(observation.url)
 
         recovery = first_recovery(
             run.capability, observation,
@@ -240,7 +247,7 @@ def replay(
     authorization: Authorization | None = None,
     tenant: str | None = None,
     evidence: Evidence | None = None,
-    escalate: Callable | None = None,
+    coordinator=None,
     reauthenticate: Callable | None = None,
 ) -> ReplayResult:
     """Run a capability against a surface and report what happened."""
@@ -261,6 +268,9 @@ def replay(
             finished_at=now(),
             duration_ms=int((time.monotonic() - clock) * 1000),
             evidence_dir=str(evidence.directory) if evidence else None,
+            handoffs=tuple(
+                h.to_dict() for h in coordinator.handoffs
+            ) if coordinator else (),
         )
         if evidence:
             evidence.finish(result)
@@ -287,8 +297,20 @@ def replay(
             detail="refused before the application was touched",
         )))
 
+    # Every action from here runs through the ownership guard, so the
+    # automation physically cannot act while a person holds the session.
+    if coordinator is not None:
+        # Only adopt this run's evidence directory if there is one. A
+        # coordinator constructed with its own must not be silently reset to
+        # None by a caller that did not ask for evidence.
+        if evidence is not None:
+            coordinator.evidence = evidence
+        surface = Supervised(surface, coordinator.control)
+
     redactor = Redactor.for_capability(capability)
     redactor.learn_all(bound.values)
+    if coordinator is not None:
+        coordinator.redactor = redactor
     if evidence:
         evidence.redactor = redactor
         evidence.note("start", capability=ref, tenant=tenant, policy=policy.label,
@@ -301,7 +323,7 @@ def replay(
         policy=policy,
         authorization=authorization,
         evidence=evidence,
-        escalate=escalate,
+        coordinator=coordinator,
         reauthenticate=reauthenticate,
         recovery_budget={r.name: r.max_attempts for r in capability.recoveries},
     )
@@ -319,6 +341,9 @@ def replay(
             except PolicyViolation as exc:
                 return finish(_policy_failure(run, step, exc))
 
+            performed_by_human = False
+            step_handoff = None
+
             if step.is_irreversible:
                 decision = decide(step, capability, policy=policy,
                                   authorization=authorization)
@@ -328,7 +353,24 @@ def replay(
                 if decision.disposition == "block":
                     return finish(_policy_failure(run, step, None, decision.reason))
                 if decision.needs_human:
-                    raise Escalated(decision.reason, step.index)
+                    # The run does not fail here. It pauses on the screen it
+                    # has already prepared and asks a person, which is the
+                    # whole point of getting ten steps in before stopping.
+                    handoff = _ask_a_human(
+                        run, step, kind="authorization_required",
+                        reason=decision.reason, tenant=tenant,
+                    )
+                    step_handoff = handoff
+                    if handoff is not None:
+                        run.handoffs.append(handoff)
+                    if handoff is None:
+                        raise Escalated(decision.reason, step.index)
+                    if not handoff.resumed:
+                        raise Escalated(
+                            handoff.resolution.note or decision.reason,
+                            step.index, handoff.request.id,
+                        )
+                    performed_by_human = handoff.resolution.action == "skip"
 
             # Settle before acting: absorb anything standing in the way, and
             # notice an ending that has already been reached.
@@ -336,12 +378,62 @@ def replay(
             if pre.outcome is not None:
                 return finish(_classify(run, pre.outcome, step.index))
 
-            try:
-                rung, _ = _perform(run, step, pre.observation)
-            except PolicyViolation as exc:
-                return finish(_policy_failure(run, step, exc))
-            except _Unresolvable as exc:
-                return finish(_unresolved_failure(run, step, exc.unresolved, pre.observation))
+            rung = None
+            if not performed_by_human:
+                try:
+                    try:
+                        rung, _ = _perform(run, step, pre.observation)
+                    except StaleElement as exc:
+                        # The control was there when we looked and is gone
+                        # now, which means a navigation from the previous step
+                        # was still in flight. Looking again is the whole
+                        # remedy, and it is bounded to one attempt so a page
+                        # that genuinely keeps moving fails rather than spins.
+                        if evidence:
+                            evidence.note("stale_element", step=step.index,
+                                          detail=str(exc))
+                        again = await_state(run, condition=None,
+                                            timeout_ms=STABILISE_MS)
+                        if again.outcome is not None:
+                            return finish(_classify(run, again.outcome, step.index))
+                        rung, _ = _perform(run, step, again.observation)
+                except ActionFailed as exc:
+                    # A surface failure is a result, not a traceback: a caller
+                    # that gets an exception out of replay() has lost the
+                    # contract the whole engine exists to honour.
+                    return finish(_record_failure(run, Failure(
+                        kind="application_error",
+                        expected=f"to {step.action} {step.target.description}"
+                                 if step.target else f"to {step.action}",
+                        observed=str(exc),
+                        step_index=step.index, step_description=step.description,
+                    ), pre.observation))
+                except PolicyViolation as exc:
+                    return finish(_policy_failure(run, step, exc))
+                except _Unresolvable as exc:
+                    # A control that is not there is exactly the condition a
+                    # person can resolve and the automation cannot.
+                    handoff = _ask_a_human(
+                        run, step, kind="target_unresolvable",
+                        reason=exc.unresolved.detail, tenant=tenant,
+                    )
+                    if handoff is None or not handoff.resumed:
+                        return finish(_unresolved_failure(
+                            run, step, exc.unresolved, pre.observation,
+                            escalation_id=handoff.request.id if handoff else None,
+                        ))
+                    if handoff.resolution.action == "skip":
+                        performed_by_human = True
+                    else:
+                        retry = await_state(run, condition=None,
+                                            timeout_ms=STABILISE_MS)
+                        try:
+                            rung, _ = _perform(run, step, retry.observation)
+                        except _Unresolvable as again:
+                            return finish(_unresolved_failure(
+                                run, step, again.unresolved, retry.observation,
+                                escalation_id=handoff.request.id,
+                            ))
 
             settled = await_state(
                 run, condition=step.expect,
@@ -350,11 +442,14 @@ def replay(
 
             report = StepReport(
                 index=step.index, action=step.action, description=step.description,
-                status="recovered" if settled.recoveries else "ok",
+                status=("handed_over" if performed_by_human
+                        else "recovered" if settled.recoveries else "ok"),
                 duration_ms=int((time.monotonic() - step_clock) * 1000),
                 resolved_by=rung,
                 attempts=1 + len(settled.recoveries),
                 recoveries_applied=settled.recoveries,
+                detail=("carried out by an operator; the checkpoint below is "
+                        "still evaluated" if performed_by_human else ""),
             )
 
             if settled.outcome is not None:
@@ -364,10 +459,33 @@ def replay(
                 return finish(_classify(run, settled.outcome, step.index))
 
             if not settled.satisfied:
-                run.reports.append(_failed_report(report))
-                if evidence:
-                    evidence.step(run.reports[-1])
-                return finish(_expectation_failure(run, step, settled))
+                # A person reported doing this step themselves. If the proof
+                # was seen at any point while they held the session, that
+                # counts -- they simply moved on from the screen that showed
+                # it before answering.
+                if performed_by_human and step_handoff is not None \
+                        and step_handoff.checkpoint_seen:
+                    if evidence:
+                        evidence.note(
+                            "handoff_verified", step=step.index,
+                            detail="the step's checkpoint was observed while "
+                                   "the operator held the session",
+                        )
+                elif performed_by_human and step.is_irreversible:
+                    # The dangerous case, and the reason this is not simply a
+                    # failure. The operator says they committed something; the
+                    # page can no longer show whether they did. Reporting
+                    # "failed" would invite a retry, and a retry might do it
+                    # twice.
+                    run.reports.append(_failed_report(report))
+                    if evidence:
+                        evidence.step(run.reports[-1])
+                    return finish(_unverified_effect(run, step, settled, step_handoff))
+                else:
+                    run.reports.append(_failed_report(report))
+                    if evidence:
+                        evidence.step(run.reports[-1])
+                    return finish(_expectation_failure(run, step, settled))
 
             run.reports.append(report)
             run.resume_url = settled.observation.url
@@ -377,6 +495,15 @@ def replay(
             _extract(run, settled.observation,
                      [o for o in capability.outputs if o.after_step == step.index])
 
+    except PolicyViolation as exc:
+        current_step = locals().get("step")
+        return finish(_record_failure(run, Failure(
+            kind="policy_refused",
+            expected="every observed page to remain within the allowlist",
+            observed=str(exc),
+            step_index=current_step.index if current_step else None,
+            detail="the page destination was checked before its contents were used",
+        ), None))
     except Escalated as exc:
         return finish(_escalation_failure(run, exc, settled))
 
@@ -385,8 +512,24 @@ def replay(
                         timeout_ms=capability.default_timeout_ms)
     if final.outcome is not None:
         return finish(_classify(run, final.outcome, None))
+
     if not final.satisfied:
-        return finish(_success_failure(run, final))
+        # The success condition may have held while an operator had the
+        # session, on a screen they then moved on from. That state is the
+        # evidence, and the outputs are read from it.
+        witnessed = next(
+            (h.proof["success"] for h in reversed(run.handoffs) if "success" in h.proof),
+            None,
+        )
+        if witnessed is None:
+            return finish(_success_failure(run, final))
+        if evidence:
+            evidence.note(
+                "success_witnessed_during_handoff",
+                detail="the success condition held while an operator held the "
+                       "session; outputs are read from that state",
+            )
+        final = Settled(witnessed, None, True, (), False)
 
     # 4. The declared outputs, given the shape the contract promises.
     _extract(run, final.observation,
@@ -405,6 +548,33 @@ def replay(
         )))
 
     return finish(ReplayResult.succeeded(ref, outputs))
+
+
+def _ask_a_human(run: _Run, step: Step, *, kind: str, reason: str, tenant):  # noqa: D401
+    """Hand the session over, if there is anyone to hand it to.
+
+    Returns None when no operator is configured, which leaves the caller to
+    fail as it did before. An escalation path that silently becomes a no-op
+    when unconfigured would be worse than not having one.
+    """
+    if run.coordinator is None:
+        return None
+    return run.coordinator.escalate(
+        run.surface,
+        kind=kind,
+        reason=reason,
+        capability_ref=run.capability.ref,
+        goal=run.capability.provenance.goal or run.capability.title,
+        step_index=step.index,
+        step_description=step.description,
+        tenant=tenant,
+        # What would prove the work was done. Both are watched throughout,
+        # because a confirmation screen is often the only evidence -- and the
+        # only place the declared outputs appear -- and operators navigate on
+        # from it before answering.
+        watch_for={"step": step.expect, "success": run.capability.success},
+        inputs=run.step_values,
+    )
 
 
 # -- failure constructors --------------------------------------------------
@@ -451,14 +621,19 @@ def _policy_failure(run, step, violation, reason: str | None = None) -> ReplayRe
     ), None)
 
 
-def _unresolved_failure(run, step, unresolved: Unresolved, observation) -> ReplayResult:
-    return _record_failure(run, Failure(
+def _unresolved_failure(run, step, unresolved: Unresolved, observation,
+                        escalation_id: str | None = None) -> ReplayResult:
+    result = _record_failure(run, Failure(
         kind=unresolved.kind,
         expected=step.target.description if step.target else step.description,
         observed=unresolved.detail,
         step_index=step.index, step_description=step.description,
         detail=f"tried {list(unresolved.tried)}",
     ), observation)
+    if escalation_id is None:
+        return result
+    from dataclasses import replace as _replace
+    return _replace(result, escalation_id=escalation_id)
 
 
 def _expectation_failure(run, step, settled: Settled) -> ReplayResult:
@@ -473,6 +648,30 @@ def _expectation_failure(run, step, settled: Settled) -> ReplayResult:
             + (f"; recoveries applied: {list(settled.recoveries)}" if settled.recoveries else "")
         ),
     ), observed)
+
+
+def _unverified_effect(run, step, settled: Settled, handoff) -> ReplayResult:
+    """An irreversible step that may or may not have happened."""
+    where = settled.observation
+    result = _record_failure(run, Failure(
+        kind="effect_unverified",
+        expected=step.expect.description if step.expect else "the step to take effect",
+        observed=(
+            f"the operator reported completing this step, but the session was "
+            f"left on {where.title!r} at {where.url}, which does not show it"
+        ),
+        step_index=step.index,
+        step_description=step.description,
+        detail=(
+            "DO NOT RETRY WITHOUT CHECKING. This step cannot be undone, and it "
+            "may already have taken effect. Confirm against the record before "
+            "running this capability again, or it may happen twice."
+        ),
+    ), where)
+    from dataclasses import replace as _replace
+    return _replace(
+        result, escalation_id=handoff.request.id if handoff else None
+    )
 
 
 def _success_failure(run, settled: Settled) -> ReplayResult:

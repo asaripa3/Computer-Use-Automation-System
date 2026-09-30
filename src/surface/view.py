@@ -23,11 +23,40 @@ def _flag(node: Node) -> str:
     return TILDE if node.name_is_derived else " "
 
 
-def render_node(node: Node) -> str:
+def _masked(value: str) -> str:
+    """A value's shape, without the value."""
+    return f"<{len(value)} chars>" if value else ""
+
+
+# Roles whose name is the application's own vocabulary -- a button caption, a
+# column header, a field label. Safe to write down, and the only thing a
+# locator failure is debugged from.
+VOCABULARY_ROLES = frozenset({
+    "button", "link", "textbox", "combobox", "checkbox", "radio",
+    "menuitem", "columnheader", "table", "form",
+})
+
+
+def _name_is_content(node: Node) -> bool:
+    """True when a node's name is page content rather than app vocabulary.
+
+    A cell named by its own text, or a text block, is named after whatever it
+    happens to say -- which on a member record is the member. A cell named by
+    its column or its adjacent label is named after the application.
+    """
+    if node.role in VOCABULARY_ROLES:
+        return False
+    return node.name_source in {"text", "none"}
+
+
+def render_node(node: Node, *, reveal: bool = True) -> str:
     parts = [f"  {_flag(node)}{node.ref:<15} {node.role:<12}"]
-    parts.append(f'"{node.name}"' if node.name else "(unnamed)")
+    if node.name and not reveal and _name_is_content(node):
+        parts.append(f"<named by its own text, {len(node.name)} chars>")
+    else:
+        parts.append(f'"{node.name}"' if node.name else "(unnamed)")
     if node.value:
-        parts.append(f"= {node.value!r}")
+        parts.append(f"= {node.value!r}" if reveal else f"= {_masked(node.value)}")
     if node.options:
         shown = ", ".join(node.options[:6])
         more = "" if len(node.options) <= 6 else f", +{len(node.options) - 6} more"
@@ -39,7 +68,8 @@ def render_node(node: Node) -> str:
     return " ".join(parts)
 
 
-def render_table(observation: Observation, table_index: int) -> list[str]:
+def render_table(observation: Observation, table_index: int,
+                 *, reveal: bool = True) -> list[str]:
     rows = observation.rows(table_index)
     if not rows:
         return []
@@ -63,13 +93,26 @@ def render_table(observation: Observation, table_index: int) -> list[str]:
     for _, cells in sorted(rows.items()):
         present = [cells[h] for h in headers if cells.get(h) is not None]
         ref = present[0].ref if present else ""
-        values = [(cell.text if (cell := cells.get(h)) else "") for h in headers]
+        values = [
+            ((cell.text if reveal else _masked(cell.text)) if (cell := cells.get(h)) else "")
+            for h in headers
+        ]
         lines.append("    | " + " | ".join([ref, *values]) + " |")
     return lines
 
 
-def render(observation: Observation, *, include_tables: bool = True) -> str:
-    """A compact, frame-grouped view of everything perceivable."""
+def render(observation: Observation, *, include_tables: bool = True,
+           reveal: bool = True) -> str:
+    """A compact, frame-grouped view of everything perceivable.
+
+    ``reveal=False`` keeps every control, name, column and coordinate and
+    replaces the *values* with their length. That is the form written into
+    evidence: what a locator failure needs is the structure of the page, and
+    a page of a member's record is exactly the regulated data §3.4 says must
+    not be written down. Schema-driven redaction cannot help here, because it
+    only knows the values a capability declared -- a member's name appears on
+    screen without any capability ever naming it.
+    """
     lines = [
         f"url:   {observation.url}",
         f"title: {observation.title}",
@@ -93,11 +136,11 @@ def render(observation: Observation, *, include_tables: bool = True) -> str:
         lines.append("")
         lines.append(f"[{'/'.join(frame_path)}]")
         for node in loose:
-            lines.append(render_node(node))
+            lines.append(render_node(node, reveal=reveal))
 
     if include_tables:
         for index in table_indices:
-            rendered = render_table(observation, index)
+            rendered = render_table(observation, index, reveal=reveal)
             if rendered:
                 lines.append("")
                 lines.extend(rendered)

@@ -1,6 +1,6 @@
 # replay-hard-failure
 
-The application fails mid-flow with an error the artifact does not declare. The run stops and reports which step failed, what it expected and what it observed, with a screenshot and a record of everything the surface layer perceived at that moment.
+The application fails mid-flow with an error the artifact does not declare. The run stops and reports which step failed, what it expected and what it observed, with a redacted record of the page structure the surface layer perceived at that moment.
 
     member.savings_balance@1.0.0: failed -- step 4 expected the member detail page has loaded, observed 'ShareBase — Application Error' at http://127.0.0.1:8097/console/member/12345
 

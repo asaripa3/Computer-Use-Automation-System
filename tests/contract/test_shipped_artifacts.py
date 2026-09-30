@@ -151,3 +151,36 @@ def test_the_declared_inputs_can_actually_be_bound(path):
         "every required input should carry an example a caller can copy"
     )
     bind_inputs(capability, examples)
+
+
+@pytest.mark.parametrize("path", ARTIFACTS, ids=lambda p: p.stem)
+def test_no_checkpoint_repeats_the_control_the_step_acts_on(path):
+    """A checkpoint must name something only the destination has.
+
+    The bug this caught: step 5 of the sub-account flow clicked a link reading
+    "Open Sub-Account" and then waited for the text "Open Sub-Account". That
+    holds on the page being *left*, so the wait returned before the click had
+    gone anywhere -- and the next step acted on a page already navigating
+    away, which surfaces as a detached element rather than as anything
+    legible.
+
+    Checking that a checkpoint does not simply echo its own step's target
+    catches the whole family cheaply.
+    """
+    capability = io.load(path)
+    for step in capability.steps:
+        if step.expect is None or step.expect.kind != "text_present":
+            continue
+        target = step.target
+        if target is None:
+            continue
+        names = {
+            (c.name or "").strip().casefold()
+            for c in target.candidates if c.name
+        }
+        expected = (step.expect.text or "").strip().casefold()
+        assert expected not in names, (
+            f"step {step.index} waits for {step.expect.text!r}, which is the "
+            f"name of the control it just acted on -- that text is already on "
+            f"screen before the step does anything"
+        )

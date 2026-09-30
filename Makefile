@@ -45,10 +45,15 @@ test-replay:  ## Only the replay tests (drives a real browser; ~3 min)
 test-discovery:  ## Only the discovery tests (scripted model, no API key)
 	$(PY) -m pytest tests/explore -v
 
+test-handoff:  ## Only the escalation and control-transfer tests
+	$(PY) -m pytest tests/handoff -v
+
 test-fast:  ## Everything except the browser tests (about a second)
 	$(PY) -m pytest tests/sharebase tests/contract tests/policy \
 		tests/surface/test_naming.py tests/surface/test_observation.py \
-		tests/replay/test_resolve.py tests/explore/test_recorder.py
+		tests/replay/test_resolve.py tests/explore/test_recorder.py \
+		tests/handoff/test_control.py tests/test_makefile.py \
+		tests/test_evidence_hygiene.py
 
 # Arm a fault against a running ShareBase, e.g. `make fault F=hard_error`.
 fault:  ## Arm one fault (F=<name>) on a running ShareBase
@@ -85,6 +90,15 @@ discover:  ## Record a capability with a model (GOAL="..." ID=<id>)
 	@test -n "$(GOAL)" || (echo 'usage: make discover GOAL="look up member 12345 and read their savings balance" ID=member.savings_balance'; exit 1)
 	$(PY) -m explore.cli "$(GOAL)" --id $(or $(ID),recorded.capability) $(if $(TRANSCRIPT),--transcript $(TRANSCRIPT))
 
+# Replay the flow that commits, handing the browser to you when it needs a
+# person. Runs headed: you work in that window, then answer in the terminal.
+handoff:  ## Replay with a human takeover you drive yourself
+	$(PY) -m replay.cli member.open_subaccount@1.0.0 \
+		--input member_id=12345 --input account_type="Vacation Club Savings" \
+		--input nickname="Vacation 2027" --input initial_deposit=150.00 \
+		--input funding_account=0001234502 \
+		--allow-irreversible --operator console --headed
+
 evidence:  ## Produce the evidence runs in evidence/
 	$(PY) tools/make_evidence.py
 
@@ -92,4 +106,4 @@ clean:  ## Remove caches and build leftovers
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 	rm -rf .pytest_cache *.egg-info src/*.egg-info
 
-.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-replay test-discovery test-fast fault faults reset clean observe capabilities review replay discover evidence
+.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-replay test-discovery test-handoff test-fast fault faults reset clean observe capabilities review replay discover handoff evidence

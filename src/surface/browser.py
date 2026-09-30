@@ -27,7 +27,7 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Frame, Page, sync_playwright
 
 from .naming import build_nodes
-from .model import Node, Observation
+from .model import ActionFailed, Node, Observation, StaleElement
 
 SCAN_SCRIPT = (Path(__file__).parent / "scan.js").read_text()
 
@@ -103,14 +103,32 @@ class BrowserSurface:
     def goto(self, url: str) -> None:
         self._page.goto(url, wait_until="domcontentloaded")
 
+    def _act(self, what: str, action) -> None:
+        """Run one action, translating driver failures into surface errors."""
+        try:
+            action()
+        except PlaywrightError as exc:
+            message = str(exc)
+            if "not attached" in message or "detached" in message:
+                raise StaleElement(
+                    f"the control for {what} left the page between observing "
+                    f"it and acting on it"
+                ) from None
+            raise ActionFailed(f"{what} did not complete: {message.splitlines()[0]}") from None
+
     def click(self, ref: str) -> None:
-        self._handle(ref).click()
+        handle = self._handle(ref)
+        self._act("this click", handle.click)
         self._await_any_navigation()
 
     def fill(self, ref: str, text: str) -> None:
         handle = self._handle(ref)
-        handle.fill("")
-        handle.type(text)
+
+        def typed() -> None:
+            handle.fill("")
+            handle.type(text)
+
+        self._act("this text field", typed)
 
     def select(self, ref: str, value: str) -> None:
         """Select by visible label, falling back to the option's value.
@@ -121,13 +139,42 @@ class BrowserSurface:
         neither.
         """
         handle = self._handle(ref)
-        try:
-            handle.select_option(label=value)
-        except PlaywrightError:
-            handle.select_option(value=value)
+
+        def chosen() -> None:
+            # Decide how to match *before* acting. Attempting a label match
+            # and letting it fail costs the driver's full timeout -- thirty
+            # seconds per selection made by value, silently, on every run.
+            # Reading the options is instant and tells the caller what was
+            # actually on offer when nothing matches.
+            found = handle.evaluate(
+                """(el, wanted) => {
+                    const options = Array.from(el.options);
+                    if (options.some(o => (o.textContent || "").trim() === wanted))
+                        return { by: "label" };
+                    if (options.some(o => o.value === wanted))
+                        return { by: "value" };
+                    return {
+                        by: null,
+                        available: options.map(o => (o.textContent || "").trim()),
+                    };
+                }""",
+                value,
+            )
+            if found["by"] == "label":
+                handle.select_option(label=value)
+            elif found["by"] == "value":
+                handle.select_option(value=value)
+            else:
+                raise ActionFailed(
+                    f"no option matches {value!r}; this list offers "
+                    f"{found['available']}"
+                )
+
+        self._act(f"the option {value!r}", chosen)
 
     def press(self, ref: str, key: str) -> None:
-        self._handle(ref).press(key)
+        handle = self._handle(ref)
+        self._act(f"the key {key!r}", lambda: handle.press(key))
 
     def close(self) -> None:
         with contextlib.suppress(PlaywrightError):

@@ -263,7 +263,7 @@
       "expect": {
         "kind": "text_present",
         "description": "the sub-account form is on screen",
-        "text": "Open Sub-Account"
+        "text": "Initial Deposit"
       }
     },
     {
@@ -701,7 +701,7 @@
     }
   ],
   "provenance": {
-    "recorded_at": "2026-09-30T06:16:07+00:00",
+    "recorded_at": "2026-09-30T14:13:08+00:00",
     "recorded_by": "hand-authored from live observation",
     "discovery_run": "",
     "goal": "open a new sub-account for this member and reach the confirmation screen"

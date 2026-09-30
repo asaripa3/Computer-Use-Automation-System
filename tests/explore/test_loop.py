@@ -88,7 +88,7 @@ def run_script(signed_on_surface, live_server, tmp_path):
            time_limit_s: float = 300.0):
         policy = Allowlist(
             label="discovery", origins=(live_server,),
-            path_patterns=("/login", "/console/*"),
+            path_patterns=("/login", "/console", "/console/*"),
             allow_irreversible=allow_irreversible,
         )
         signed_on_surface.goto(f"{live_server}/console/search")

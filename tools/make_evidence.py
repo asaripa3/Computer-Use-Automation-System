@@ -25,6 +25,11 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from contract import io  # noqa: E402
 from policy.allowlist import Allowlist  # noqa: E402
+from handoff.control import Control  # noqa: E402
+from handoff.coordinator import Coordinator  # noqa: E402
+from handoff.intervention import Resolution  # noqa: E402
+from handoff.operator import ScriptedOperator  # noqa: E402
+from policy.risk import Authorization  # noqa: E402
 from replay.engine import replay  # noqa: E402
 from replay.evidence import Evidence  # noqa: E402
 from sharebase.data import store  # noqa: E402
@@ -60,7 +65,7 @@ def run(name: str, inputs: dict, *, fault: str | None, note: str) -> None:
                          requires_origins=(BASE,)),
     )
     policy = Allowlist(label="read-only", origins=(BASE,),
-                       path_patterns=("/login", "/console/*"))
+                       path_patterns=("/login", "/console", "/console/*"))
 
     directory = EVIDENCE / name
     if directory.exists():
@@ -87,6 +92,95 @@ def run(name: str, inputs: dict, *, fault: str | None, note: str) -> None:
     print(f"  {name:<22} {result.status:<17} {result.summary()[:70]}")
 
 
+def escalation_run() -> None:
+    """A replay that stops at an irreversible step and asks a person.
+
+    The operator in this recording confirms the share themselves in the same
+    live session and answers "skip". The automation does not take their word
+    for it: the step's checkpoint is still evaluated afterwards.
+    """
+    from dataclasses import replace as _replace
+
+    board.reset()
+    store.reset()
+
+    capability = io.load(EVIDENCE.parent / "capabilities" /
+                         "member.open_subaccount@1.0.0.capability.json")
+    capability = _replace(
+        capability,
+        surface=_replace(capability.surface, entry_url=f"{BASE}/console/search",
+                         requires_origins=(BASE,)),
+    )
+    policy = Allowlist(label="attended", origins=(BASE,),
+                       path_patterns=("/login", "/console", "/console/*"),
+                       allow_irreversible=True)
+
+    directory = EVIDENCE / "replay-escalation"
+    if directory.exists():
+        shutil.rmtree(directory)
+    evidence = Evidence(directory)
+
+    with browser_session() as surface:
+        sign_on(surface)
+
+        class ConfirmsItThemselves(ScriptedOperator):
+            def wait(self, request, *, poll):
+                poll()
+                observation = surface.observe()
+                confirm = observation.find(role="button", name="Confirm")
+                if confirm:
+                    surface.click(confirm[0].ref)
+                poll()
+                return self.resolution
+
+        coordinator = Coordinator(
+            operator=ConfirmsItThemselves(Resolution(
+                "skip", by="operator@branch",
+                note="member confirmed by phone; I pressed Confirm myself",
+            )),
+            control=Control(),
+            evidence=evidence,
+        )
+
+        result = replay(
+            capability,
+            {"member_id": "12345", "account_type": "Vacation Club Savings",
+             "nickname": "Vacation 2027", "initial_deposit": "150.00",
+             "funding_account": "0001234502"},
+            surface, policy=policy, evidence=evidence,
+            coordinator=coordinator, reauthenticate=sign_on,
+        )
+
+    (directory / "README.md").write_text(
+        "# replay-escalation\n\n"
+        "A replay that reaches an irreversible step it may not take on its "
+        "own, hands the live session to a person, and carries on from what "
+        "they decided.\n\n"
+        "The run completes ten steps first, so the operator arrives at the "
+        "review screen with the request already filled in rather than being "
+        "handed a blank form. They confirm it themselves in that same signed-in "
+        "session and answer `skip`.\n\n"
+        "The automation does not take that on trust: the step's checkpoint is "
+        "still evaluated, so an operator who said they did something they did "
+        "not would produce a failed checkpoint rather than a run carrying on "
+        "from a state nobody verified.\n\n"
+        f"    {result.summary()}\n\n"
+        "The request carries a redacted page structure as the operator found it. "
+        "`run.jsonl` holds the request, what they decided, and the pages and "
+        "field changes observed while they held the session.\n\n"
+        "Reproduce it interactively, working in the browser window yourself:\n\n"
+        "```bash\n"
+        "make replay CAP=member.open_subaccount@1.0.0 \\\n"
+        "  IN=\"--input member_id=12345 --input account_type='Vacation Club Savings' \\\n"
+        "      --input nickname='Vacation 2027' --input initial_deposit=150.00 \\\n"
+        "      --input funding_account=0001234502 \\\n"
+        "      --allow-irreversible --operator console --headed\"\n"
+        "```\n",
+        encoding="utf-8",
+    )
+    print(f"  {'replay-escalation':<22} {result.status:<17} {result.summary()[:60]}")
+
+
 def main() -> int:
     from werkzeug.serving import make_server
 
@@ -111,9 +205,11 @@ def main() -> int:
         run("replay-hard-failure", {"member_id": "12345"}, fault="hard_error",
             note="The application fails mid-flow with an error the artifact does "
                  "not declare. The run stops and reports which step failed, what "
-                 "it expected and what it observed, with a screenshot and a "
-                 "record of everything the surface layer perceived at that "
+                 "it expected and what it observed, with a redacted record "
+                 "of the page structure the surface layer perceived at that "
                  "moment.")
+
+        escalation_run()
 
         # The artifact itself belongs with the runs that exercise it.
         shutil.copy(

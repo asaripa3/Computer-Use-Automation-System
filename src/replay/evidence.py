@@ -6,12 +6,12 @@ richer signal on failure. Three things are written:
     run.jsonl      one line per step: what was attempted, which locator rung
                    resolved it, what recoveries fired, how long it took
     result.json    the replay contract's own result object
-    failure.png    a screenshot, written only when a run fails
     failure.txt    what the surface layer saw at the moment it failed
 
-The screenshot is for a person; `failure.txt` is for whoever has to work out
-*why* the locator did not resolve, and a rendering of the perceived controls
-answers that far better than a picture does.
+Pixel captures are not persisted because a screenshot can contain personal
+data that text redaction cannot remove. `failure.txt` preserves the page shape
+with values replaced by their lengths, which is enough to diagnose a locator
+failure without retaining member information.
 
 Everything written here passes through the redactor first. A run against a
 real institution produces evidence containing member data, and evidence is
@@ -57,17 +57,15 @@ class Evidence:
 
     def capture_failure(self, surface, observation: Observation | None) -> list[str]:
         written: list[str] = []
-        try:
-            shot = self.directory / "failure.png"
-            shot.write_bytes(surface.screenshot())
-            written.append(shot.name)
-        except Exception as exc:  # a screenshot must never mask the real failure
-            self.note("evidence_warning", detail=f"screenshot unavailable: {exc}")
-
         if observation is not None:
             seen = self.directory / "failure.txt"
+            # Structure, not content: every control, name and column is
+            # kept and the values are replaced by their length. A locator
+            # failure is debugged from the shape of the page, and the shape
+            # carries no member data.
             seen.write_text(
-                self.redactor.text(render(observation)) or "", encoding="utf-8"
+                self.redactor.text(render(observation, reveal=False)) or "",
+                encoding="utf-8",
             )
             written.append(seen.name)
 

@@ -51,6 +51,39 @@ def test_replaying_twice_with_the_same_inputs_gives_the_same_answer(
     assert first.status == second.status == "success"
 
 
+def test_a_redirected_page_is_blocked_before_replay_reads_it(
+    savings, signed_on_surface, read_only_policy, sign_on
+):
+    """A click may navigate away without an explicit navigate step."""
+    class RedirectingSurface:
+        def __init__(self, wrapped):
+            self.wrapped = wrapped
+            self.redirected = False
+
+        def __getattr__(self, name):
+            return getattr(self.wrapped, name)
+
+        def click(self, ref):
+            self.wrapped.click(ref)
+            self.redirected = True
+
+        def observe(self):
+            observation = self.wrapped.observe()
+            return replace(observation, url=(
+                "https://outside.example/collect" if self.redirected else observation.url
+            ))
+
+    result = replay(
+        savings, {"member_id": "12345"},
+        RedirectingSurface(signed_on_surface),
+        policy=read_only_policy, reauthenticate=sign_on,
+    )
+
+    assert result.status == "failure"
+    assert result.failure.kind == "policy_refused"
+    assert "outside.example" in result.failure.observed
+
+
 def test_the_ladder_rung_that_resolved_each_target_is_reported(
     savings, signed_on_surface, read_only_policy, sign_on
 ):
@@ -341,7 +374,7 @@ def test_a_successful_run_leaves_a_structured_log(
     assert result.evidence_dir == str(tmp_path / "run")
 
 
-def test_a_failing_run_leaves_a_screenshot_and_what_was_perceived(
+def test_a_failing_run_keeps_redacted_page_shape_without_raw_screenshot(
     savings, signed_on_surface, read_only_policy, sign_on, tmp_path, arm
 ):
     arm("hard_error")
@@ -349,9 +382,10 @@ def test_a_failing_run_leaves_a_screenshot_and_what_was_perceived(
     replay(savings, {"member_id": "12345"}, signed_on_surface,
            policy=read_only_policy, evidence=evidence, reauthenticate=sign_on)
 
-    assert (tmp_path / "run" / "failure.png").exists()
+    assert not (tmp_path / "run" / "failure.png").exists()
     perceived = (tmp_path / "run" / "failure.txt").read_text()
     assert "Application Error" in perceived
+    assert "12345" not in perceived
 
 
 def test_the_member_id_never_appears_in_the_evidence(

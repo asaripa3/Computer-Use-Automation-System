@@ -54,9 +54,20 @@ FAILURE_KINDS = (
     "escalated",             # handed to a human and not resumed
     "contract_violation",    # inputs or outputs did not satisfy the contract
     "recovery_exhausted",    # a known condition kept recurring past its budget
+    # An irreversible step a person reported completing, which the page can no
+    # longer confirm. Deliberately separate from "it failed": the two demand
+    # opposite next actions. A failure should be retried; this must not be,
+    # until someone has checked, because retrying may do it twice.
+    "effect_unverified",
 )
 
-STEP_STATUSES = ("ok", "recovered", "failed", "skipped")
+STEP_STATUSES = (
+    "ok",
+    "recovered",     # a declared recovery fired and the step still completed
+    "handed_over",   # a person carried this step out; its checkpoint still ran
+    "failed",
+    "skipped",
+)
 
 
 @dataclass(frozen=True)
@@ -169,6 +180,9 @@ class ReplayResult:
     duration_ms: int = 0
     evidence_dir: str | None = None
     escalation_id: str | None = None
+    # Every transfer of control during this run: what was asked, what the
+    # person decided, and what they did while they held the session.
+    handoffs: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if self.status not in STATUSES:
@@ -190,6 +204,18 @@ class ReplayResult:
         return self.status == SUCCESS
 
     @property
+    def may_be_retried_safely(self) -> bool:
+        """Whether re-running this invocation is safe.
+
+        False when an irreversible step may or may not have taken effect. A
+        caller that retries on any failure would, in that one case, do the
+        thing twice.
+        """
+        return not (
+            self.failure is not None and self.failure.kind == "effect_unverified"
+        )
+
+    @property
     def needs_attention(self) -> bool:
         """True only for things a person should look at.
 
@@ -202,6 +228,10 @@ class ReplayResult:
     @property
     def has_drifted(self) -> bool:
         return bool(self.drift)
+
+    @property
+    def involved_a_human(self) -> bool:
+        return bool(self.handoffs)
 
     def summary(self) -> str:
         if self.status == SUCCESS:
@@ -226,6 +256,8 @@ class ReplayResult:
             "duration_ms": self.duration_ms,
             "evidence_dir": self.evidence_dir,
             "escalation_id": self.escalation_id,
+            "handoffs": list(self.handoffs),
+            "safe_to_retry": self.may_be_retried_safely,
         }
 
     # -- constructors ------------------------------------------------------

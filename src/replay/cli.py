@@ -24,6 +24,9 @@ import envfile
 from contract import io
 from contract.overlay import apply_overlay, load_overlay
 from policy.allowlist import Allowlist
+from handoff.control import Control
+from handoff.coordinator import Coordinator
+from handoff.operator import ConsoleOperator, FileOperator
 from policy.risk import Authorization
 from surface.browser import browser_session
 
@@ -119,6 +122,20 @@ def render(result) -> str:
                 f"{signal.recorded_best}, resolved by {signal.resolved_by}"
             )
 
+    if result.handoffs:
+        lines.append("")
+        lines.append("  handed to a person")
+        for handoff in result.handoffs:
+            request, resolution = handoff["request"], handoff["resolution"]
+            lines.append(
+                f"    {request['kind']} at step {request['step_index']} "
+                f"-> {resolution['action']} by {resolution['by']}"
+            )
+            if resolution.get("note"):
+                lines.append(f"      note: {resolution['note']}")
+            for action in handoff.get("human_actions", []):
+                lines.append(f"      {action['kind']}: {action['detail']}")
+
     if result.evidence_dir:
         lines.append("")
         lines.append(f"  evidence        {result.evidence_dir}")
@@ -144,6 +161,17 @@ def main(argv: list[str] | None = None) -> int:
                              "directory under evidence/)")
     parser.add_argument("--no-evidence", action="store_true")
     parser.add_argument("--headed", action="store_true", help="watch the browser work")
+    parser.add_argument(
+        "--operator", choices=("none", "console", "file"), default="none",
+        help="where to route an intervention when the run needs a person. "
+             "'console' hands you the live browser window -- use it with "
+             "--headed, since you will be working in that window.",
+    )
+    parser.add_argument(
+        "--inbox", metavar="DIR",
+        help="with --operator file: where the request is written and the "
+             "answer is read back",
+    )
     parser.add_argument("--json", action="store_true", help="print the result as JSON")
     args = parser.parse_args(argv)
 
@@ -169,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
         # The fault console is deliberately outside the allowlist: automation
         # able to disarm the conditions it is being tested against would make
         # every robustness result meaningless.
-        path_patterns=("/login", "/console/*"),
+        path_patterns=("/login", "/console", "/console/*"),
         allow_irreversible=args.allow_irreversible,
     )
 
@@ -186,6 +214,21 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence = Evidence(directory)
 
+    coordinator = None
+    if args.operator == "console":
+        if not args.headed:
+            print("note: --operator console hands you the browser window, so "
+                  "it is only useful with --headed", file=sys.stderr)
+        coordinator = Coordinator(operator=ConsoleOperator(), control=Control())
+    elif args.operator == "file":
+        inbox = Path(args.inbox) if args.inbox else (
+            (evidence.directory if evidence else EVIDENCE) / "inbox"
+        )
+        coordinator = Coordinator(
+            operator=FileOperator(inbox), control=Control()
+        )
+        print(f"interventions will be written to {inbox}/intervention.json")
+
     hook = sign_on(base)
     with browser_session(headless=not args.headed) as surface:
         hook(surface)
@@ -193,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
             capability, parse_inputs(args.input), surface,
             policy=policy, authorization=authorization,
             tenant=args.tenant, evidence=evidence, reauthenticate=hook,
+            coordinator=coordinator,
         )
 
     if args.json:

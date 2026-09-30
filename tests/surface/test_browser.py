@@ -203,3 +203,59 @@ def test_a_ref_from_an_earlier_observation_of_the_same_page_is_rejected(
 
     # The equivalent ref from the current observation works.
     signed_on_surface.fill(second.field("Member Number").ref, "12345")
+
+
+# -- choosing from a list --------------------------------------------------
+
+def test_an_option_can_be_chosen_by_its_visible_label(signed_on_surface, live_server):
+    signed_on_surface.goto(f"{live_server}/console/member/12345/subaccount")
+    observation = signed_on_surface.observe()
+    signed_on_surface.select(observation.field("Account Type").ref, "Money Market")
+    assert signed_on_surface.observe().field("Account Type").value == "Money Market"
+
+
+def test_an_option_can_be_chosen_by_its_underlying_value(signed_on_surface, live_server):
+    """Funding accounts are chosen by account number, not by the label.
+
+    The label is "0001234502 — Free Checking"; the value is the bare number,
+    which is what a caller supplies.
+    """
+    signed_on_surface.goto(f"{live_server}/console/member/12345/subaccount")
+    observation = signed_on_surface.observe()
+    signed_on_surface.select(observation.field("Funding Source").ref, "0001234502")
+    chosen = signed_on_surface.observe().field("Funding Source").value
+    assert chosen.startswith("0001234502")
+
+
+def test_choosing_by_value_is_not_paid_for_with_a_timeout(signed_on_surface, live_server):
+    """The bug this pins cost thirty seconds per selection, silently.
+
+    Attempting a label match and letting it fail burns the driver's full
+    timeout before the value match is tried. Reading the options first makes
+    the decision instant -- and the whole sub-account flow went from 32
+    seconds to 1.3.
+    """
+    import time
+
+    signed_on_surface.goto(f"{live_server}/console/member/12345/subaccount")
+    observation = signed_on_surface.observe()
+
+    started = time.monotonic()
+    signed_on_surface.select(observation.field("Funding Source").ref, "0001234502")
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 5.0, f"selecting by value took {elapsed:.1f}s"
+
+
+def test_an_option_that_is_not_offered_says_what_was(signed_on_surface, live_server):
+    from surface.model import ActionFailed
+
+    signed_on_surface.goto(f"{live_server}/console/member/12345/subaccount")
+    observation = signed_on_surface.observe()
+
+    with pytest.raises(ActionFailed) as caught:
+        signed_on_surface.select(observation.field("Account Type").ref, "Offshore Trust")
+
+    message = str(caught.value)
+    assert "Offshore Trust" in message
+    assert "Regular Savings" in message, "the error should list what was on offer"

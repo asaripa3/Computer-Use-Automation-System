@@ -37,7 +37,7 @@ make reset
 | `src/replay/resolve.py` | Walks the locator ladder. Returns which rung won, or *why* nothing resolved. |
 | `src/replay/conditions.py` | Evaluates the four condition kinds against an observation; finds the first matching outcome or recovery. |
 | `src/replay/engine.py` | The orchestrator. Owns the step ordering, the wait loop, the risk gate and the failure taxonomy. |
-| `src/replay/evidence.py` | The run record: structured log, result, and a screenshot plus perceived state on failure. |
+| `src/replay/evidence.py` | The run record: structured log, result, and a redacted page-shape snapshot on failure. |
 | `src/replay/cli.py` | `make replay`. The only place credentials are read. |
 
 | Test file | What it proves |

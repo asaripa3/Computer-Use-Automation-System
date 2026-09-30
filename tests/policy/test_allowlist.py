@@ -12,7 +12,7 @@ from helpers_contract import BUTTON, capability
 LOCAL = Allowlist(
     label="local-sandbox",
     origins=("http://127.0.0.1:8080",),
-    path_patterns=("/login", "/console/*"),
+    path_patterns=("/login", "/console", "/console/*"),
 )
 
 

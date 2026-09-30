@@ -83,6 +83,30 @@ NAME_SOURCES = frozenset(
 DERIVED_NAME_SOURCES = frozenset({"adjacent-label", "column-header"})
 
 
+class SurfaceError(RuntimeError):
+    """Acting on the surface failed.
+
+    Defined here rather than in the browser implementation so that the layers
+    above can react to *what happened* without importing anyone's driver. A
+    desktop surface raises the same two, and the replay engine handles both
+    without knowing which surface it is on.
+    """
+
+
+class StaleElement(SurfaceError):
+    """The control was there when we looked, and is not there now.
+
+    Nearly always a race with a navigation the previous step started: the
+    observation captured a page that was already on its way out. Recoverable
+    by looking again, which is what makes it worth telling apart from a
+    control that is genuinely absent.
+    """
+
+
+class ActionFailed(SurfaceError):
+    """The control is there, but the action would not complete."""
+
+
 @dataclass(frozen=True)
 class Bounds:
     x: float

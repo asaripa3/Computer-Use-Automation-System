@@ -332,7 +332,7 @@
     }
   ],
   "provenance": {
-    "recorded_at": "2026-09-30T06:16:07+00:00",
+    "recorded_at": "2026-09-30T14:13:08+00:00",
     "recorded_by": "hand-authored from live observation",
     "discovery_run": "",
     "goal": "look up member 12345 and read their current savings balance"

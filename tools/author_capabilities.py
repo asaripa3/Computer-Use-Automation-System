@@ -347,8 +347,13 @@ def build(observe_at: str, record_as: str) -> list[Capability]:
                                           rationale="link text asserted by the application"),
                      ),
                  ),
+                 # Deliberately not "Open Sub-Account": that is the link text
+                 # on the page being left, so the checkpoint would be
+                 # satisfied before the click had gone anywhere -- and the
+                 # next step would then act on a page already navigating away.
+                 # A checkpoint has to name something only the destination has.
                  expect=Condition("text_present", "the sub-account form is on screen",
-                                  text="Open Sub-Account")),
+                                  text="Initial Deposit")),
             Step(6, "select", "Choose the savings product.",
                  target=acct_type, value=Value(from_input="account_type")),
             Step(7, "fill", "Name the new share.",

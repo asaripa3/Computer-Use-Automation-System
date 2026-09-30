@@ -3,7 +3,7 @@
   "tenant": null,
   "status": "success",
   "outputs": {
-    "member_name": "<pii:5121bd>",
+    "member_name": "<pii:3960a6>",
     "savings_balance": "4821.37"
   },
   "outcome": null,
@@ -15,7 +15,7 @@
       "action": "navigate",
       "description": "Open the member lookup form.",
       "status": "ok",
-      "duration_ms": 58,
+      "duration_ms": 47,
       "attempts": 1
     },
     {
@@ -23,7 +23,7 @@
       "action": "fill",
       "description": "Enter the member number.",
       "status": "ok",
-      "duration_ms": 52,
+      "duration_ms": 28,
       "attempts": 1,
       "resolved_by": "asserted_id"
     },
@@ -32,7 +32,7 @@
       "action": "click",
       "description": "Run the search.",
       "status": "ok",
-      "duration_ms": 210,
+      "duration_ms": 189,
       "attempts": 1,
       "resolved_by": "asserted_id"
     },
@@ -41,14 +41,16 @@
       "action": "click",
       "description": "Open the matching member's record.",
       "status": "ok",
-      "duration_ms": 239,
+      "duration_ms": 220,
       "attempts": 1,
       "resolved_by": "grid_cell"
     }
   ],
-  "started_at": "2026-09-30T06:34:18.680+00:00",
-  "finished_at": "2026-09-30T06:34:19.270+00:00",
-  "duration_ms": 590,
+  "started_at": "2026-09-30T15:45:05.572+00:00",
+  "finished_at": "2026-09-30T15:45:06.080+00:00",
+  "duration_ms": 507,
   "evidence_dir": "/Users/adarsh/Documents/InterfaceAI/evidence/replay-success",
-  "escalation_id": null
+  "escalation_id": null,
+  "handoffs": [],
+  "safe_to_retry": true
 }

@@ -1,0 +1,161 @@
+{
+  "capability": "member.open_subaccount@1.0.0",
+  "tenant": null,
+  "status": "success",
+  "outputs": {
+    "new_account_number": "0000010004",
+    "confirmation_number": "CNF-12345-0004"
+  },
+  "outcome": null,
+  "failure": null,
+  "drift": [],
+  "steps": [
+    {
+      "index": 1,
+      "action": "navigate",
+      "description": "Open the member lookup form.",
+      "status": "ok",
+      "duration_ms": 44,
+      "attempts": 1
+    },
+    {
+      "index": 2,
+      "action": "fill",
+      "description": "Enter the member number.",
+      "status": "ok",
+      "duration_ms": 28,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 3,
+      "action": "click",
+      "description": "Run the search.",
+      "status": "ok",
+      "duration_ms": 196,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 4,
+      "action": "click",
+      "description": "Open the matching member's record.",
+      "status": "ok",
+      "duration_ms": 203,
+      "attempts": 1,
+      "resolved_by": "grid_cell"
+    },
+    {
+      "index": 5,
+      "action": "click",
+      "description": "Start a sub-account request.",
+      "status": "ok",
+      "duration_ms": 222,
+      "attempts": 1,
+      "resolved_by": "role_and_name"
+    },
+    {
+      "index": 6,
+      "action": "select",
+      "description": "Choose the savings product.",
+      "status": "ok",
+      "duration_ms": 44,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 7,
+      "action": "fill",
+      "description": "Name the new share.",
+      "status": "ok",
+      "duration_ms": 24,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 8,
+      "action": "fill",
+      "description": "Enter the opening deposit.",
+      "status": "ok",
+      "duration_ms": 24,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 9,
+      "action": "select",
+      "description": "Choose the funding account.",
+      "status": "ok",
+      "duration_ms": 19,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 10,
+      "action": "click",
+      "description": "Submit the request for review.",
+      "status": "ok",
+      "duration_ms": 196,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 11,
+      "action": "click",
+      "description": "Commit the new share.",
+      "status": "handed_over",
+      "duration_ms": 281,
+      "attempts": 1,
+      "detail": "carried out by an operator; the checkpoint below is still evaluated"
+    }
+  ],
+  "started_at": "2026-09-30T15:45:19.570+00:00",
+  "finished_at": "2026-09-30T15:45:20.864+00:00",
+  "duration_ms": 1294,
+  "evidence_dir": "/Users/adarsh/Documents/InterfaceAI/evidence/replay-escalation",
+  "escalation_id": null,
+  "handoffs": [
+    {
+      "request": {
+        "id": "int_97c06bd8e2",
+        "raised_at": "2026-09-30T15:45:20+00:00",
+        "kind": "authorization_required",
+        "reason": "step 11 ('Commit the new share.') is irreversible and no authorization was supplied for this invocation",
+        "what_to_do": "The run has completed every step up to this one and is waiting on the screen where it would commit the new share. Check the details on screen are what was intended. Confirm it yourself and reply 'skip', or reply 'retry' to let the automation do it now that you have seen it. Reply 'abandon' if it should not happen. If you do it yourself, answer while the confirmation is still on screen -- that screen is how the run knows it worked, and navigating away first leaves it unable to tell.",
+        "capability": "member.open_subaccount@1.0.0",
+        "goal": "open a new sub-account for this member and reach the confirmation screen",
+        "step_index": 11,
+        "step_description": "Commit the new share.",
+        "url": "http://127.0.0.1:8097/console/member/<pii:830cb3>/subaccount",
+        "tenant": null,
+        "evidence_dir": "/Users/adarsh/Documents/InterfaceAI/evidence/replay-escalation",
+        "screenshot": null,
+        "perceived": "url:   http://127.0.0.1:8097/console/member/<pii:830cb3>/subaccount\ntitle: Open Sub-Account\n\n[main]\n   89460f:f0:0     cell         <named by its own text, 16 chars> = <16 chars>\n   89460f:f0:1     cell         <named by its own text, 27 chars> = <27 chars>\n   89460f:f0:2     text         <named by its own text, 67 chars>\n   89460f:f0:3     text         <named by its own text, 7 chars>\n   89460f:f0:4     cell         <named by its own text, 13 chars> = <13 chars>\n  ~89460f:f0:5     cell         \"Member Number\" = <5 chars>\n   89460f:f0:6     cell         <named by its own text, 11 chars> = <11 chars>\n  ~89460f:f0:7     cell         \"Member Name\" = <17 chars>\n   89460f:f0:8     cell         <named by its own text, 12 chars> = <12 chars>\n  ~89460f:f0:9     cell         \"Account Type\" = <21 chars>\n   89460f:f0:10    cell         <named by its own text, 8 chars> = <8 chars>\n  ~89460f:f0:11    cell         \"Nickname\" = <13 chars>\n   89460f:f0:12    cell         <named by its own text, 15 chars> = <15 chars>\n  ~89460f:f0:13    cell         \"Initial Deposit\" = <6 chars>\n   89460f:f0:14    cell         <named by its own text, 14 chars> = <14 chars>\n  ~89460f:f0:15    cell         \"Funding Source\" = <10 chars>\n   89460f:f0:16    button       \"Confirm\"\n   89460f:f0:17    link         \"Back\"\n   89460f:f0:18    link         \"Cancel Request\"\n   89460f:f0:19    cell         <named by its own text, 97 chars> = <97 chars>\n   89460f:f0:20    text         <named by its own text, 35 chars>\n\n  ~ = name inferred by the surface layer, not asserted by the application"
+      },
+      "resolution": {
+        "action": "skip",
+        "by": "operator@branch",
+        "note": "member confirmed by phone; I pressed Confirm myself",
+        "decided_at": "2026-09-30T15:45:19+00:00"
+      },
+      "human_actions": [
+        {
+          "at": "2026-09-30T15:45:20+00:00",
+          "kind": "navigated",
+          "detail": "http://127.0.0.1:8097/console/member/<pii:830cb3>/subaccount -> http://127.0.0.1:8097/console/member/<pii:830cb3>/subaccount/commit"
+        },
+        {
+          "at": "2026-09-30T15:45:20+00:00",
+          "kind": "noted",
+          "detail": "member confirmed by phone; I pressed Confirm myself"
+        }
+      ],
+      "returned_on": "http://127.0.0.1:8097/console/member/<pii:830cb3>/subaccount/commit",
+      "verified": [
+        "step",
+        "success"
+      ]
+    }
+  ],
+  "safe_to_retry": true
+}
