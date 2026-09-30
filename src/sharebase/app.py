@@ -3,7 +3,7 @@
 ShareBase is a fictional credit-union member servicing console. It exists to be
 automated, and it is built to be awkward in the specific ways that matter:
 
-  * the authenticated console is a frameset, so perception has to traverse a
+  * the authenticated console is a frameset, so the surface layer has to traverse a
     frame tree rather than a single document;
   * control ids are regenerated on every render, so no locator may depend on
     them;

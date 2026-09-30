@@ -16,7 +16,7 @@ Every completed step has a walkthrough in [`docs/steps/`](docs/steps/).
 | Step | Component | State |
 |-----|-----------|-------|
 | 0 | [ShareBase target application](docs/steps/step-0-target-app.md) | **done** — 51 tests |
-| 1 | Perception — frame-aware accessibility tree | not started |
+| 1 | [The surface layer — perceive and act](docs/steps/step-1-surface-layer.md) | **done** — 63 tests |
 | 2 | Capability schema, policy, redaction | not started |
 | 3 | Deterministic replay engine | not started |
 | 4 | LLM discovery loop and recorder | not started |
@@ -54,9 +54,10 @@ sign-on credentials exist only so the automation has a login step to learn.
 ## Running
 
 ```bash
-make run     # ShareBase on http://127.0.0.1:8080
-make test    # the full suite
-make help    # every available command
+make run                                   # ShareBase on http://127.0.0.1:8080
+make test                                  # the full suite
+make observe URL=/console/member/12345     # what the surface layer sees on a page
+make help                                  # every available command
 ```
 
 Sign on with `svc_agent` / `Demo-Pass-1234` (or whatever is in your `.env`).

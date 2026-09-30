@@ -11,8 +11,9 @@ BASE := http://$(HOST):$(PORT)
 help:  ## List available commands
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
-install:  ## Install runtime and test dependencies
+install:  ## Install dependencies and the browser Playwright drives
 	$(PY) -m pip install -r requirements.txt
+	$(PY) -m playwright install chromium
 
 run:  ## Start ShareBase, the target application
 	$(PY) -m sharebase
@@ -20,14 +21,20 @@ run:  ## Start ShareBase, the target application
 test:  ## Run the whole test suite
 	$(PY) -m pytest
 
-test-surface:  ## Only the hostile-surface property tests
-	$(PY) -m pytest tests/sharebase/test_surface.py -v
+test-hostile:  ## Only the target's hostile-surface property tests
+	$(PY) -m pytest tests/sharebase/test_hostile_surface.py -v
 
 test-flow:  ## Only the flow and business-outcome tests
 	$(PY) -m pytest tests/sharebase/test_flow.py -v
 
 test-faults:  ## Only the fault-taxonomy tests
 	$(PY) -m pytest tests/sharebase/test_faults.py -v
+
+test-surface:  ## Only the surface-layer tests (drives a real browser)
+	$(PY) -m pytest tests/surface -v
+
+test-fast:  ## Everything except the browser tests
+	$(PY) -m pytest tests/sharebase tests/surface/test_naming.py tests/surface/test_observation.py
 
 # Arm a fault against a running ShareBase, e.g. `make fault F=hard_error`.
 fault:  ## Arm one fault (F=<name>) on a running ShareBase
@@ -43,8 +50,11 @@ reset:  ## Disarm every fault and reseed member data
 	curl -sS -X POST $(BASE)/admin/reset -H 'Content-Type: application/json' \
 	@-d '{}' | $(PY) -m json.tool
 
+observe:  ## Print what the surface layer sees on one page (URL=<path>)
+	@$(PY) -m surface.cli $(URL)
+
 clean:  ## Remove caches and build leftovers
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 	rm -rf .pytest_cache *.egg-info src/*.egg-info
 
-.PHONY: help install run test test-surface test-flow test-faults fault faults reset clean
+.PHONY: help install run test test-hostile test-flow test-faults test-surface test-fast fault faults reset clean observe
