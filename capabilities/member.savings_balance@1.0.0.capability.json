@@ -1,0 +1,302 @@
+{
+  "schema_version": "1.0",
+  "id": "member.savings_balance",
+  "version": "1.0.0",
+  "status": "approved",
+  "title": "Read a member's current savings balance",
+  "description": "Look up a member by number and return the current balance of their regular savings share, together with the member's name so the caller can confirm it reached the right record.",
+  "surface": {
+    "kind": "web",
+    "entry_url": "http://127.0.0.1:8080/console/search",
+    "requires_origins": [
+      "http://127.0.0.1:8080"
+    ],
+    "app_fingerprint": "ShareBase 4.2.1"
+  },
+  "inputs": [
+    {
+      "name": "member_id",
+      "type": "string",
+      "description": "The member number to look up.",
+      "required": true,
+      "sensitivity": "pii",
+      "pattern": "^[0-9]{4,10}$",
+      "example": "12345"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "member_name",
+      "type": "string",
+      "description": "The member's name as shown on the detail panel.",
+      "source": {
+        "description": "the member's name on the detail panel",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "cell",
+            "name": "Name",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[1]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[2]"
+            ]
+          }
+        ]
+      },
+      "sensitivity": "pii",
+      "optional": false
+    },
+    {
+      "name": "savings_balance",
+      "type": "money",
+      "description": "Current balance of the regular savings share.",
+      "source": {
+        "description": "the Current Balance cell of the Regular Savings row",
+        "candidates": [
+          {
+            "strategy": "grid_cell",
+            "robustness": "derived",
+            "rationale": "addressed by column and a key in another column, so it survives the row moving when a member holds a different number of accounts; a row index would not",
+            "column": "Current Balance",
+            "key_column": "Description",
+            "key_value": {
+              "literal": "Regular Savings"
+            }
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "sensitivity": "internal",
+      "optional": true
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "action": "navigate",
+      "description": "Open the member lookup form.",
+      "risk": "safe",
+      "url": "http://127.0.0.1:8080/console/search"
+    },
+    {
+      "index": 2,
+      "action": "fill",
+      "description": "Enter the member number.",
+      "risk": "safe",
+      "target": {
+        "description": "the Member Number field on the lookup form",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "txtMemberNo"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "textbox",
+            "name": "Member Number",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[1]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "member_id"
+      }
+    },
+    {
+      "index": 3,
+      "action": "click",
+      "description": "Run the search.",
+      "risk": "safe",
+      "target": {
+        "description": "the Search button",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "btnSearch"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "accessible name asserted by the application via value; portable to any accessibility API.",
+            "role": "button",
+            "name": "Search",
+            "name_source": "value"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[3]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "action": "click",
+      "description": "Open the matching member's record.",
+      "risk": "safe",
+      "target": {
+        "description": "the Member No cell of the row matching the supplied member number",
+        "candidates": [
+          {
+            "strategy": "grid_cell",
+            "robustness": "derived",
+            "rationale": "addressed by column and a key in another column, so it survives the row moving when a member holds a different number of accounts; a row index would not",
+            "column": "Member No",
+            "key_column": "Member No",
+            "key_value": {
+              "from_input": "member_id"
+            }
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "the member detail page has loaded",
+        "text": "Share & Deposit Accounts"
+      }
+    }
+  ],
+  "success": {
+    "kind": "text_present",
+    "description": "the share and deposit grid is on screen",
+    "text": "Share & Deposit Accounts"
+  },
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "kind": "business",
+      "description": "No member record exists for the supplied member number. A legitimate answer, not a failure.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the empty results banner",
+        "text": "No member records match"
+      }
+    },
+    {
+      "code": "MEMBER_INDEX_UNAVAILABLE",
+      "kind": "hard",
+      "description": "The member index is down. Nothing can be answered until it returns.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the repository failure page",
+        "text": "RepositoryUnavailableException"
+      }
+    }
+  ],
+  "recoveries": [
+    {
+      "name": "maintenance_notice",
+      "description": "A system notice is served in place of the requested page.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the maintenance advisory banner",
+        "text": "Scheduled maintenance advisory"
+      },
+      "action": "dismiss",
+      "max_attempts": 1,
+      "target": {
+        "description": "the Continue button on the notice",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "the notice's only control",
+            "role": "button",
+            "name": "Continue",
+            "name_source": "value"
+          }
+        ],
+        "frame": "contentFrame"
+      }
+    },
+    {
+      "name": "transient_server_error",
+      "description": "A timeout from the data tier that clears on retry.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the timeout error page",
+        "text": "Timeout expired"
+      },
+      "action": "retry",
+      "max_attempts": 2
+    },
+    {
+      "name": "session_expired",
+      "description": "The console session timed out and bounced to sign-on.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the expiry notice on the sign-on page",
+        "text": "Your session has expired"
+      },
+      "action": "reauthenticate",
+      "max_attempts": 1
+    }
+  ],
+  "provenance": {
+    "recorded_at": "2026-09-30T05:48:10+00:00",
+    "recorded_by": "hand-authored from live observation",
+    "discovery_run": "",
+    "goal": "look up member 12345 and read their current savings balance"
+  }
+}

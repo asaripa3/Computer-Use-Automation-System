@@ -33,8 +33,14 @@ test-faults:  ## Only the fault-taxonomy tests
 test-surface:  ## Only the surface-layer tests (drives a real browser)
 	$(PY) -m pytest tests/surface -v
 
+test-contract:  ## Only the capability schema tests
+	$(PY) -m pytest tests/contract -v
+
+test-policy:  ## Only the guardrail tests (allowlist, risk, redaction)
+	$(PY) -m pytest tests/policy -v
+
 test-fast:  ## Everything except the browser tests
-	$(PY) -m pytest tests/sharebase tests/surface/test_naming.py tests/surface/test_observation.py
+	$(PY) -m pytest tests/sharebase tests/contract tests/policy tests/surface/test_naming.py tests/surface/test_observation.py
 
 # Arm a fault against a running ShareBase, e.g. `make fault F=hard_error`.
 fault:  ## Arm one fault (F=<name>) on a running ShareBase
@@ -53,8 +59,14 @@ reset:  ## Disarm every fault and reseed member data
 observe:  ## Print what the surface layer sees on one page (URL=<path>)
 	@$(PY) -m surface.cli $(URL)
 
+capabilities:  ## Re-author the seed capability artifacts from the live app
+	$(PY) tools/author_capabilities.py
+
+review:  ## Print a capability for human review (CAP=<id@version>)
+	@$(PY) -m contract.cli $(CAP)
+
 clean:  ## Remove caches and build leftovers
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 	rm -rf .pytest_cache *.egg-info src/*.egg-info
 
-.PHONY: help install run test test-hostile test-flow test-faults test-surface test-fast fault faults reset clean observe
+.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-fast fault faults reset clean observe capabilities review

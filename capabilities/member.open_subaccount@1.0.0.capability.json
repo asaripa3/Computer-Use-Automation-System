@@ -1,0 +1,665 @@
+{
+  "schema_version": "1.0",
+  "id": "member.open_subaccount",
+  "version": "1.0.0",
+  "status": "approved",
+  "title": "Open a savings sub-account for a member",
+  "description": "Open an additional savings share for an existing member and return the new account number and confirmation reference. The final step commits the account and cannot be undone.",
+  "surface": {
+    "kind": "web",
+    "entry_url": "http://127.0.0.1:8080/console/search",
+    "requires_origins": [
+      "http://127.0.0.1:8080"
+    ],
+    "app_fingerprint": "ShareBase 4.2.1"
+  },
+  "inputs": [
+    {
+      "name": "member_id",
+      "type": "string",
+      "description": "The member to open the share for.",
+      "required": true,
+      "sensitivity": "pii",
+      "pattern": "^[0-9]{4,10}$",
+      "example": "12345"
+    },
+    {
+      "name": "account_type",
+      "type": "enum",
+      "description": "Which savings product to open.",
+      "required": true,
+      "sensitivity": "none",
+      "choices": [
+        "Regular Savings",
+        "Holiday Club Savings",
+        "Vacation Club Savings",
+        "Money Market"
+      ],
+      "example": "Vacation Club Savings"
+    },
+    {
+      "name": "nickname",
+      "type": "string",
+      "description": "Operator-visible name for the new share.",
+      "required": true,
+      "sensitivity": "none",
+      "pattern": "^[A-Za-z0-9 ]{1,24}$",
+      "example": "Vacation 2027"
+    },
+    {
+      "name": "initial_deposit",
+      "type": "money",
+      "description": "Opening deposit; the product minimum is 25.00.",
+      "required": true,
+      "sensitivity": "none",
+      "example": "150.00"
+    },
+    {
+      "name": "funding_account",
+      "type": "string",
+      "description": "The existing account the opening deposit is drawn from.",
+      "required": true,
+      "sensitivity": "internal",
+      "example": "0001234502"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "new_account_number",
+      "type": "string",
+      "description": "The account number that was opened.",
+      "source": {
+        "description": "the New Account Number field on the confirmation page",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "label/value panel on the confirmation page",
+            "role": "cell",
+            "name": "New Account Number",
+            "name_source": "adjacent-label"
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "sensitivity": "internal",
+      "optional": false
+    },
+    {
+      "name": "confirmation_number",
+      "type": "string",
+      "description": "The posting reference for this opening.",
+      "source": {
+        "description": "the Confirmation Number field on the confirmation page",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "label/value panel on the confirmation page",
+            "role": "cell",
+            "name": "Confirmation Number",
+            "name_source": "adjacent-label"
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "sensitivity": "internal",
+      "optional": false
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "action": "navigate",
+      "description": "Open the sub-account form for the member.",
+      "risk": "safe",
+      "url": "http://127.0.0.1:8080/console/search"
+    },
+    {
+      "index": 2,
+      "action": "fill",
+      "description": "Enter the member number.",
+      "risk": "safe",
+      "target": {
+        "description": "the Member Number field on the lookup form",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "txtMemberNo"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "textbox",
+            "name": "Member Number",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[1]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "member_id"
+      }
+    },
+    {
+      "index": 3,
+      "action": "click",
+      "description": "Run the search.",
+      "risk": "safe",
+      "target": {
+        "description": "the Search button",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "btnSearch"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "accessible name asserted by the application via value; portable to any accessibility API.",
+            "role": "button",
+            "name": "Search",
+            "name_source": "value"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[3]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "action": "click",
+      "description": "Open the matching member's record.",
+      "risk": "safe",
+      "target": {
+        "description": "the Member No cell of the row matching the supplied member number",
+        "candidates": [
+          {
+            "strategy": "grid_cell",
+            "robustness": "derived",
+            "rationale": "addressed by column and a key in another column, so it survives the row moving when a member holds a different number of accounts; a row index would not",
+            "column": "Member No",
+            "key_column": "Member No",
+            "key_value": {
+              "from_input": "member_id"
+            }
+          }
+        ],
+        "frame": "contentFrame"
+      }
+    },
+    {
+      "index": 5,
+      "action": "click",
+      "description": "Start a sub-account request.",
+      "risk": "safe",
+      "target": {
+        "description": "the Open Sub-Account servicing action",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "link text asserted by the application",
+            "role": "link",
+            "name": "Open Sub-Account",
+            "name_source": "text"
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "the sub-account form is on screen",
+        "text": "Open Sub-Account"
+      }
+    },
+    {
+      "index": 6,
+      "action": "select",
+      "description": "Choose the savings product.",
+      "risk": "safe",
+      "target": {
+        "description": "the Account Type list",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "ddlAcctType"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "combobox",
+            "name": "Account Type",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[1]",
+              "td[2]",
+              "select[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "account_type"
+      }
+    },
+    {
+      "index": 7,
+      "action": "fill",
+      "description": "Name the new share.",
+      "risk": "safe",
+      "target": {
+        "description": "the Nickname field",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "txtNickname"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "textbox",
+            "name": "Nickname",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "nickname"
+      }
+    },
+    {
+      "index": 8,
+      "action": "fill",
+      "description": "Enter the opening deposit.",
+      "risk": "safe",
+      "target": {
+        "description": "the Initial Deposit field",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "txtDeposit"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "textbox",
+            "name": "Initial Deposit",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[3]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "initial_deposit"
+      }
+    },
+    {
+      "index": 9,
+      "action": "select",
+      "description": "Choose the funding account.",
+      "risk": "safe",
+      "target": {
+        "description": "the Funding Source list",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "ddlFunding"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "name inferred by the surface layer from the neighbouring cell; there is no label association in the markup. Survives a vendor release, but is exactly what a tenant rebrands.",
+            "role": "combobox",
+            "name": "Funding Source",
+            "name_source": "adjacent-label"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[4]",
+              "td[2]",
+              "select[1]"
+            ]
+          }
+        ]
+      },
+      "value": {
+        "from_input": "funding_account"
+      }
+    },
+    {
+      "index": 10,
+      "action": "click",
+      "description": "Submit the request for review.",
+      "risk": "safe",
+      "target": {
+        "description": "the Continue button",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back; it survives a re-render and a restyle, and the application's own request handling depends on it. Stable across tenant branding, but can move between vendor releases.",
+            "id_kind": "field_name",
+            "id_value": "btnContinue"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "accessible name asserted by the application via value; portable to any accessibility API.",
+            "role": "button",
+            "name": "Continue",
+            "name_source": "value"
+          },
+          {
+            "strategy": "structural_path",
+            "robustness": "positional",
+            "rationale": "position in the document; a last resort that breaks silently when anything above it in the page changes.",
+            "path": [
+              "tr[2]",
+              "td[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[2]",
+              "td[1]",
+              "form[1]",
+              "table[1]",
+              "tbody[1]",
+              "tr[5]",
+              "td[2]",
+              "input[1]"
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "the review page is on screen",
+        "text": "Confirm Sub-Account Request"
+      }
+    },
+    {
+      "index": 11,
+      "action": "click",
+      "description": "Commit the new share.",
+      "risk": "irreversible",
+      "target": {
+        "description": "the Confirm button on the review page",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back",
+            "id_kind": "field_name",
+            "id_value": "btnConfirm"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "button caption asserted by the application",
+            "role": "button",
+            "name": "Confirm",
+            "name_source": "value"
+          }
+        ],
+        "frame": "contentFrame"
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "the account was opened",
+        "text": "Sub-account opened successfully"
+      }
+    }
+  ],
+  "success": {
+    "kind": "text_present",
+    "description": "the confirmation page is on screen",
+    "text": "Sub-account opened successfully"
+  },
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "kind": "business",
+      "description": "No member record exists for the supplied member number. A legitimate answer, not a failure.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the empty results banner",
+        "text": "No member records match"
+      }
+    },
+    {
+      "code": "MEMBER_INDEX_UNAVAILABLE",
+      "kind": "hard",
+      "description": "The member index is down. Nothing can be answered until it returns.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the repository failure page",
+        "text": "RepositoryUnavailableException"
+      }
+    },
+    {
+      "code": "PERMISSION_DENIED",
+      "kind": "business",
+      "description": "A servicing restriction is on file; a supervisor must authorise this.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the denial banner",
+        "text": "SEC-403"
+      }
+    },
+    {
+      "code": "SUBACCOUNT_LIMIT_REACHED",
+      "kind": "business",
+      "description": "The member already holds the maximum number of savings shares.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the limit banner",
+        "text": "ACCT-422"
+      }
+    },
+    {
+      "code": "MEMBER_NOT_SERVICEABLE",
+      "kind": "business",
+      "description": "The member record is closed or inactive and may not be serviced.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the not-serviceable banner",
+        "text": "MBR-409"
+      }
+    },
+    {
+      "code": "VALIDATION_REJECTED",
+      "kind": "business",
+      "description": "The application rejected the submitted values.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the field validation banner",
+        "text": "The request could not be processed"
+      }
+    },
+    {
+      "code": "REQUEST_NOT_IN_PROGRESS",
+      "kind": "hard",
+      "description": "The server has no sub-account request in progress; the flow was replayed out of order or the session was lost mid-request.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the sequence error",
+        "text": "SEQ-409"
+      }
+    }
+  ],
+  "recoveries": [
+    {
+      "name": "maintenance_notice",
+      "description": "A system notice is served in place of the requested page.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the maintenance advisory banner",
+        "text": "Scheduled maintenance advisory"
+      },
+      "action": "dismiss",
+      "max_attempts": 1,
+      "target": {
+        "description": "the Continue button on the notice",
+        "candidates": [
+          {
+            "strategy": "role_and_name",
+            "robustness": "derived",
+            "rationale": "the notice's only control",
+            "role": "button",
+            "name": "Continue",
+            "name_source": "value"
+          }
+        ],
+        "frame": "contentFrame"
+      }
+    },
+    {
+      "name": "transient_server_error",
+      "description": "A timeout from the data tier that clears on retry.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the timeout error page",
+        "text": "Timeout expired"
+      },
+      "action": "retry",
+      "max_attempts": 2
+    },
+    {
+      "name": "session_expired",
+      "description": "The console session timed out and bounced to sign-on.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the expiry notice on the sign-on page",
+        "text": "Your session has expired"
+      },
+      "action": "reauthenticate",
+      "max_attempts": 1
+    }
+  ],
+  "provenance": {
+    "recorded_at": "2026-09-30T05:48:10+00:00",
+    "recorded_by": "hand-authored from live observation",
+    "discovery_run": "",
+    "goal": "open a new sub-account for this member and reach the confirmation screen"
+  }
+}

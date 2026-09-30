@@ -17,7 +17,7 @@ Every completed step has a walkthrough in [`docs/steps/`](docs/steps/).
 |-----|-----------|-------|
 | 0 | [ShareBase target application](docs/steps/step-0-target-app.md) | **done** — 51 tests |
 | 1 | [The surface layer — perceive and act](docs/steps/step-1-surface-layer.md) | **done** — 63 tests |
-| 2 | Capability schema, policy, redaction | not started |
+| 2 | [The capability contract and guardrails](docs/steps/step-2-capability-contract.md) | **done** — 95 tests |
 | 3 | Deterministic replay engine | not started |
 | 4 | LLM discovery loop and recorder | not started |
 | 5 | Escalation and control transfer | not started |
@@ -57,6 +57,7 @@ sign-on credentials exist only so the automation has a login step to learn.
 make run                                   # ShareBase on http://127.0.0.1:8080
 make test                                  # the full suite
 make observe URL=/console/member/12345     # what the surface layer sees on a page
+make review                                # the capability catalog
 make help                                  # every available command
 ```
 

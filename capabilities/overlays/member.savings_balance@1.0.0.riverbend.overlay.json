@@ -1,0 +1,26 @@
+{
+  "tenant": "riverbend",
+  "capability_id": "member.savings_balance",
+  "capability_version": "1.0.0",
+  "entry_url": "http://127.0.0.1:8080/console/search",
+  "label_aliases": {
+    "Member Number": "Account Number",
+    "Current Balance": "Available Balance"
+  },
+  "step_targets": {
+    "3": {
+      "description": "the Search button on the 4.1 lookup form",
+      "candidates": [
+        {
+          "strategy": "asserted_id",
+          "robustness": "asserted",
+          "rationale": "this release names the lookup button btnFind, not btnSearch",
+          "id_kind": "field_name",
+          "id_value": "btnFind"
+        }
+      ],
+      "frame": "contentFrame"
+    }
+  },
+  "notes": "Riverbend runs ShareBase 4.1, which brands member numbers as account numbers and named the lookup button differently. The caption aliases cost nothing -- the asserted field names still resolve first -- so only the renamed button needed an explicit override."
+}
