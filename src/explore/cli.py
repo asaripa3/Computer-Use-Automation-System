@@ -25,7 +25,7 @@ from policy.allowlist import Allowlist
 from replay.evidence import Evidence
 from surface.browser import browser_session
 
-from .loop import DEFAULT_MAX_STEPS, discover
+from .loop import DEFAULT_MAX_STEPS, DEFAULT_TIME_LIMIT_S, discover
 from .model import NoModelAvailable, default_model, provider_for
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -108,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="replay a recorded run's decisions instead of "
                              "calling a model")
     parser.add_argument("--max-steps", type=int, default=DEFAULT_MAX_STEPS)
+    parser.add_argument("--time-limit", type=float, default=DEFAULT_TIME_LIMIT_S,
+                        help="wall-clock seconds before the run is stopped")
     parser.add_argument("--allow-irreversible", action="store_true",
                         help="permit the model to commit something during discovery")
     parser.add_argument("--headed", action="store_true")
@@ -150,12 +152,12 @@ def main(argv: list[str] | None = None) -> int:
             capability_id=args.id, version=args.version,
             app_fingerprint="ShareBase 4.2.1",
             recoveries=house_recoveries(),
-            max_steps=args.max_steps,
+            max_steps=args.max_steps, time_limit_s=args.time_limit,
             transcript=directory / "transcript.jsonl",
             evidence=evidence,
         )
 
-    print(f"stopped after {run.turns} turns: {run.stopped_because}")
+    print(f"stopped after {run.turns} turns ({run.elapsed_s:g}s): {run.stopped_because}")
     if run.summary:
         print(f"summary: {run.summary}")
     if run.give_up_reason:

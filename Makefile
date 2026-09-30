@@ -53,16 +53,16 @@ test-fast:  ## Everything except the browser tests (about a second)
 # Arm a fault against a running ShareBase, e.g. `make fault F=hard_error`.
 fault:  ## Arm one fault (F=<name>) on a running ShareBase
 	@test -n "$(F)" || (echo "usage: make fault F=hard_error"; exit 1)
-	curl -sS -X POST $(BASE)/admin/faults -H 'Content-Type: application/json' \
-	@-d '{"$(F)": true}' | $(PY) -m json.tool
+	@curl -sS -X POST $(BASE)/admin/faults -H 'Content-Type: application/json' \
+		-d '{"$(F)": true}' | $(PY) -m json.tool
 
 faults:  ## Show the current fault state
-	curl -sS $(BASE)/healthz | $(PY) -m json.tool
+	@curl -sS $(BASE)/healthz | $(PY) -m json.tool
 	@echo "fault console: $(BASE)/admin/faults"
 
 reset:  ## Disarm every fault and reseed member data
-	curl -sS -X POST $(BASE)/admin/reset -H 'Content-Type: application/json' \
-	@-d '{}' | $(PY) -m json.tool
+	@curl -sS -X POST $(BASE)/admin/reset -H 'Content-Type: application/json' \
+		-d '{}' | $(PY) -m json.tool
 
 observe:  ## Print what the surface layer sees on one page (URL=<path>)
 	@$(PY) -m surface.cli $(URL)

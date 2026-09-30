@@ -84,7 +84,8 @@ def savings_script():
 def run_script(signed_on_surface, live_server, tmp_path):
     """Run a scripted discovery session against the live application."""
 
-    def go(script, *, max_steps: int = 15, allow_irreversible: bool = False):
+    def go(script, *, max_steps: int = 15, allow_irreversible: bool = False,
+           time_limit_s: float = 300.0):
         policy = Allowlist(
             label="discovery", origins=(live_server,),
             path_patterns=("/login", "/console/*"),
@@ -104,7 +105,7 @@ def run_script(signed_on_surface, live_server, tmp_path):
             provider=provider, policy=policy, base=live_server,
             entry_path="/console/search",
             capability_id="discovered.savings_balance", version="0.1.0",
-            max_steps=max_steps, session=session,
+            max_steps=max_steps, time_limit_s=time_limit_s, session=session,
             transcript=tmp_path / "transcript.jsonl",
         )
         return run, policy
@@ -365,3 +366,16 @@ def test_exploration_is_dropped_from_the_recorded_flow(run_script):
         "navigate", "fill", "click", "click"
     ]
     assert "99999" not in str(run.capability.to_dict())
+
+
+def test_a_wall_clock_limit_stops_the_run(run_script):
+    """§3.1 names three stopping conditions: max steps, timeout, dead-end.
+
+    A model that keeps choosing cheap actions can burn a long time inside a
+    generous step budget, so the step bound alone is not enough.
+    """
+    run, _ = run_script(savings_script(), max_steps=30, time_limit_s=0.0)
+
+    assert not run.ok
+    assert "time limit" in run.stopped_because
+    assert run.turns == 1, "stopped before issuing a single decision"

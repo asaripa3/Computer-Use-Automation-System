@@ -65,61 +65,73 @@ make review                                # the capability catalog
 make help                                  # every available command
 ```
 
-## Recording a capability
+## Demo path
 
-A model drives the application once, and what it learned is compiled into a
-reusable artifact. This is the only place a model is ever called.
-
-```bash
-export OPENAI_API_KEY=...
-make discover GOAL="look up member 12345 and read their current savings balance" \
-              ID=member.savings_balance
-```
-
-Without a key, a recorded run's decisions replay against the live application
-and produce the same artifact — the same tools execute, only the network call
-to the model is skipped:
+Four commands, end to end. Start the target application in one terminal:
 
 ```bash
-make discover GOAL="..." ID=member.savings_balance \
-              TRANSCRIPT=evidence/discovery-.../transcript.jsonl
+make run
 ```
 
-## Replaying a capability
-
-With ShareBase running, this is the production path an agent would trigger —
-no model involved in any decision:
+**1. Record a capability.** A model drives the application once; what it
+learned is compiled into a typed artifact. This is the only place a model is
+ever called.
 
 ```bash
-make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"
+make discover GOAL="look up member 12345 and read their current savings balance" ID=member.savings_balance
 ```
 
-Three endings, all reachable on demand:
+Needs `OPENAI_API_KEY`. Without one, replay the decisions of the run committed
+in `evidence/` instead — the same tools execute against the same live
+application and the same artifact comes out, only the model call is skipped:
 
 ```bash
-make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=99999"
+make discover GOAL="look up member 12345 and read their current savings balance" ID=member.savings_balance TRANSCRIPT=evidence/discovery-run/transcript.jsonl
 ```
-a legitimate business answer (`MEMBER_NOT_FOUND`), which exits zero because it
-is not an incident.
+
+Either way it writes `capabilities/member.savings_balance@0.1.0.capability.json`.
+
+**2. Review what it recorded**, before trusting it with anything:
+
+```bash
+make review CAP=member.savings_balance@0.1.0
+```
+
+**3. Replay it.** No model is involved in any decision from here on.
+
+```bash
+make replay CAP=member.savings_balance@0.1.0 IN="--input member_number=12345"
+```
+
+**4. Replay it for a member the model never saw**, which is the difference
+between a recording and a capability:
+
+```bash
+make replay CAP=member.savings_balance@0.1.0 IN="--input member_number=22001"
+```
+
+### The three endings
+
+The same artifact, classified three different ways:
+
+```bash
+make replay CAP=member.savings_balance@0.1.0 IN="--input member_number=99999"
+```
+`MEMBER_NOT_FOUND` — a legitimate business answer. Exits zero, because it is
+not an incident.
 
 ```bash
 make fault F=hard_error
-make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"
+make replay CAP=member.savings_balance@0.1.0 IN="--input member_number=12345"
 make reset
 ```
-a hard failure, reporting which step failed, what it expected and what it
+A hard failure, reporting which step failed, what it expected and what it
 observed, with a screenshot and a record of everything perceived at that
 moment.
 
-Saved runs of all three are in [`evidence/`](evidence/), alongside
-[`evidence/discovery-run/`](evidence/discovery-run/) — a real gpt-4.1
-session recording `member.savings_balance@0.1.0`, which replays for a
-member the model never saw.
-
-Sign on with `svc_agent` / `Demo-Pass-1234` (or whatever is in your `.env`).
-
-The demo path — a goal, a discovery run, then a deterministic replay of the
-resulting artifact — arrives with step 6.
+Saved runs of all of these are in [`evidence/`](evidence/), including
+[`evidence/discovery-run/`](evidence/discovery-run/) — a real gpt-4.1 session
+with its full transcript and reasoning.
 
 ## The target application
 
