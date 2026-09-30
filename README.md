@@ -18,7 +18,7 @@ Every completed step has a walkthrough in [`docs/steps/`](docs/steps/).
 | 0 | [ShareBase target application](docs/steps/step-0-target-app.md) | **done** — 51 tests |
 | 1 | [The surface layer — perceive and act](docs/steps/step-1-surface-layer.md) | **done** — 63 tests |
 | 2 | [The capability contract and guardrails](docs/steps/step-2-capability-contract.md) | **done** — 95 tests |
-| 3 | Deterministic replay engine | not started |
+| 3 | [Deterministic replay](docs/steps/step-3-replay.md) | **done** — 53 tests |
 | 4 | LLM discovery loop and recorder | not started |
 | 5 | Escalation and control transfer | not started |
 | 6 | Evidence runs and `REPORT.md` | not started |
@@ -37,7 +37,7 @@ tests/
 docs/
   steps/             one walkthrough per completed build step
   assignment.pdf     the brief
-evidence/            discovery and replay runs (step 6)
+evidence/            saved runs: success, business outcome, hard failure
 ```
 
 ## Setup
@@ -60,6 +60,34 @@ make observe URL=/console/member/12345     # what the surface layer sees on a pa
 make review                                # the capability catalog
 make help                                  # every available command
 ```
+
+## Replaying a capability
+
+With ShareBase running, this is the production path an agent would trigger —
+no model involved in any decision:
+
+```bash
+make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"
+```
+
+Three endings, all reachable on demand:
+
+```bash
+make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=99999"
+```
+a legitimate business answer (`MEMBER_NOT_FOUND`), which exits zero because it
+is not an incident.
+
+```bash
+make fault F=hard_error
+make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"
+make reset
+```
+a hard failure, reporting which step failed, what it expected and what it
+observed, with a screenshot and a record of everything perceived at that
+moment.
+
+Saved runs of all three are in [`evidence/`](evidence/).
 
 Sign on with `svc_agent` / `Demo-Pass-1234` (or whatever is in your `.env`).
 

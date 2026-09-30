@@ -19,3 +19,14 @@ def valid_subaccount_form() -> dict[str, str]:
         "ddlFunding": "0001234502",
         "btnContinue": "Continue",
     }
+
+
+# A sub-account request for member 12345 that passes every validation rule,
+# expressed as the invocation parameters a caller would supply.
+SUBACCOUNT_INPUTS = {
+    "member_id": "12345",
+    "account_type": "Vacation Club Savings",
+    "nickname": "Vacation 2027",
+    "initial_deposit": "150.00",
+    "funding_account": "0001234502",
+}

@@ -14,7 +14,17 @@
     "a[href]", "[onclick]", "[role]",
     "th", "td",
     "h1", "h2", "h3", "label", "legend",
+    // Plain text containers. A legacy application states its outcomes in
+    // styled divs -- "No member records match", "SEC-403", "Sub-account
+    // opened successfully" -- and a surface that cannot see those cannot tell
+    // a legitimate answer from a broken page.
+    "div", "p", "li", "b", "strong", "em", "span",
   ].join(",");
+
+  // Captured only when they carry text of their own: a wrapper's textContent
+  // is everything beneath it, so capturing wrappers would report the whole
+  // page as a single node.
+  const TEXT_TAGS = new Set(["div", "p", "li", "b", "strong", "em", "span"]);
 
   window.__px = [];
 
@@ -167,11 +177,18 @@
     // Skip structural cells that carry neither text nor a control -- empty
     // spacer cells are the bulk of a table-layout page and carry no meaning.
     if ((tag === "td" || tag === "th")) {
-      const hasControl = el.querySelector("input, select, textarea, button, a[href]");
       // A cell containing another table is page chrome, not content: its text
       // is everything nested beneath it.
-      if (hasControl || el.querySelector("table") || !textOf(el)) continue;
+      //
+      // A cell containing a *control* is kept, so long as it has text of its
+      // own. In a results grid the drill-down link lives inside the very cell
+      // that carries the row's key, and skipping it would make the column
+      // unaddressable -- the cell and the link are captured as separate nodes
+      // with different roles, so nothing is ambiguous. A cell holding only an
+      // input has no text and is dropped by the same rule.
+      if (el.querySelector("table") || !textOf(el)) continue;
     }
+    if (TEXT_TAGS.has(tag) && !ownTextOf(el)) continue;
     if (!visible) continue;
 
     const coords = tableCoordsFor(el);

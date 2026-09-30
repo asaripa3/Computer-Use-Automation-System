@@ -141,3 +141,60 @@ def locator_for(
 
     frame = node.frame_path[-1] if node.frame_path and node.frame_path[-1] != "main" else None
     return Locator(description=description, candidates=viable, frame=frame)
+
+
+def node_matches(node: Node, candidate: LocatorCandidate, *, key_value: str | None = None) -> bool:
+    """Does ``node`` satisfy ``candidate``?
+
+    The other half of the translation seam. `locator_for` turns an observed
+    node into candidates; this turns a candidate back into a predicate over
+    observed nodes. Both directions read the surface's own hints, and keeping
+    them in one module is what lets the rule "nothing above the surface layer
+    reads `WebHints`" stay true of the replay engine.
+
+    A desktop surface would add its own pair here and the engine would not
+    change.
+    """
+    if candidate.strategy == "asserted_id":
+        if candidate.id_kind == "field_name":
+            return node.hints.field_name == candidate.id_value
+        return False
+
+    if candidate.strategy == "role_and_name":
+        if node.role != candidate.role or not _same_name(node.name, candidate.name or ""):
+            return False
+        # Where the name came from is part of the identity, not decoration.
+        # Both halves of a `Date of Birth | 03/11/1974` panel answer to "Date
+        # of Birth" -- the caption by its own text, the value by borrowing its
+        # neighbour's -- so without provenance the candidate matches two
+        # controls and identifies neither.
+        #
+        # If the application later gains a real label the provenance changes,
+        # this candidate stops matching, and the ladder falls through to the
+        # next rung while reporting drift. That is the intended behaviour: the
+        # run still works, and it says the surface moved.
+        if candidate.name_source:
+            return node.name_source == candidate.name_source
+        return True
+
+    if candidate.strategy == "structural_path":
+        return tuple(node.path) == tuple(candidate.path)
+
+    if candidate.strategy == "grid_cell":
+        if node.table is None:
+            return False
+        if not _same_name(node.table.column_header or "", candidate.column or ""):
+            return False
+        # The key is checked by the caller, which has the row in hand; a cell
+        # on its own cannot see its sibling columns.
+        return key_value is None or True
+
+    return False
+
+
+def _same_name(left: str, right: str) -> bool:
+    def fold(value: str) -> str:
+        cleaned = (value or "").replace(" ", " ").strip().rstrip(":*").strip()
+        return " ".join(cleaned.split()).casefold()
+
+    return fold(left) == fold(right)

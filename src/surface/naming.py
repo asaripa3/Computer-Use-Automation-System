@@ -33,6 +33,10 @@ TEXT_INPUT_TYPES = frozenset(
 )
 BUTTON_INPUT_TYPES = frozenset({"submit", "button", "reset", "image"})
 
+# Plain text containers. The banners a legacy application states its outcomes
+# in are ordinary divs, so they have to be perceivable as text.
+TEXT_TAGS = frozenset({"div", "p", "li", "b", "strong", "em", "span"})
+
 # Explicit role attributes we honour, mapped into the normalised vocabulary.
 ROLE_ATTR_MAP = {
     "button": "button",
@@ -102,6 +106,10 @@ def derive_role(record: dict[str, Any]) -> str:
         return "text"
     if record.get("hasClickHandler"):
         return "button"
+    # Checked after the click handler, so that a clickable div is reported as
+    # the button it behaves like rather than as the markup it is made of.
+    if tag in TEXT_TAGS:
+        return "text"
     return "unknown"
 
 

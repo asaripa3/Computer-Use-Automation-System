@@ -100,7 +100,8 @@ def render(capability: Capability, *, verbose: bool = False) -> str:
         if verbose and step.target is not None:
             out.extend(_locator_lines(step.target, "        "))
         if step.expect is not None:
-            add(f"        expect: {_condition(step.expect)}")
+            add(f"        expect: {_condition(step.expect)} "
+                f"(waits up to {capability.timeout_for(step) / 1000:g}s)")
 
     add("")
     add(f"SUCCESS   {_condition(capability.success)}")

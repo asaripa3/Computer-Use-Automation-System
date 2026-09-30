@@ -105,6 +105,7 @@ class BrowserSurface:
 
     def click(self, ref: str) -> None:
         self._handle(ref).click()
+        self._await_any_navigation()
 
     def fill(self, ref: str, text: str) -> None:
         handle = self._handle(ref)
@@ -133,6 +134,22 @@ class BrowserSurface:
             self._page.close()
 
     # -- internals ---------------------------------------------------------
+
+    def _await_any_navigation(self) -> None:
+        """Let a navigation the click started actually begin, then finish.
+
+        A click returns as soon as the event is dispatched. On a
+        server-rendered application that means the *old* page is still on
+        screen for a moment, and an observation taken immediately would report
+        the form that was just submitted rather than the page it produced --
+        which is how a caller ends up looking for search results on the search
+        form. The short grace period is for the navigation to start; the load
+        wait is for it to complete, and both are no-ops when the click did not
+        navigate at all.
+        """
+        self._page.wait_for_timeout(120)
+        with contextlib.suppress(PlaywrightError):
+            self._page.wait_for_load_state("domcontentloaded", timeout=10_000)
 
     def _settle(self) -> None:
         """Wait for the page to stop moving before looking at it.

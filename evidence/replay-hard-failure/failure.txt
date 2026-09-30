@@ -1,0 +1,11 @@
+url:   http://127.0.0.1:8097/console/member/<pii:14c195>
+title: ShareBase — Application Error
+
+[main]
+   72ebbc:f0:0     cell         "Server Error in '/ShareBase' Application" = "Server Error in '/ShareBase' Application"
+   72ebbc:f0:1     cell         "System.NullReferenceException Object reference not set to an instance of an object. Stack Trace [NullReferenceException (0x80131904): Object reference not set to an instance of an object.] ShareBase.Web.Servicing.MemberDetail.BindShares(Str" = 'System.NullReferenceException Object reference not set to an instance of an object. Stack Trace [NullReferenceException (0x80131904): Object reference not set to an instance of an object.] ShareBase.Web.Servicing.MemberDetail.BindShares(Str'
+   72ebbc:f0:2     text         "Object reference not set to an instance of an object."
+   72ebbc:f0:3     text         "System.NullReferenceException"
+   72ebbc:f0:4     text         "Stack Trace"
+   72ebbc:f0:5     text         "[NullReferenceException (0x80131904): Object reference not set to an instance of an object.] ShareBase.Web.Servicing.MemberDetail.BindShares(String memberNo='<pii:14c195>') +214 ShareBase.Web.Servicing.ConsolePage.Page_Load(Object sender, EventArgs e) +88 System.Web.UI.Control.OnLoad(EventArgs e) +99 System.Web.UI.Control.LoadRecursive() +50 System.Web.UI.Page.ProcessRequestMain(Boolean, Boolean) +1724"
+   72ebbc:f0:6     text         "Reference: 05D4ACC25BDB | ShareBase 4.2.1"

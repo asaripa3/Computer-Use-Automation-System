@@ -31,11 +31,32 @@ from surface.naming import derive_name, derive_role, derive_value, to_node
         ({"tag": "th"}, "columnheader"),
         ({"tag": "td"}, "cell"),
         ({"tag": "h1"}, "heading"),
-        ({"tag": "div"}, "unknown"),
+        ({"tag": "div"}, "text"),
+        ({"tag": "b"}, "text"),
+        ({"tag": "article"}, "unknown"),
     ],
 )
 def test_roles_follow_behaviour(record, expected):
     assert derive_role(record) == expected
+
+
+def test_a_plain_div_is_perceivable_as_text():
+    """The banners a legacy application states its outcomes in are plain divs.
+
+    "No member records match", "SEC-403", "Sub-account opened successfully" --
+    all of them live in styled divs with no role and no heading. A surface
+    that cannot see those cannot tell a legitimate answer from a broken page,
+    which makes every declared outcome in every artifact undetectable.
+    """
+    record = {"tag": "div", "ownText": "No member records match the search criteria.",
+              "text": "No member records match the search criteria."}
+    assert derive_role(record) == "text"
+    assert derive_name(record, "text")[0].startswith("No member records match")
+
+
+def test_a_clickable_div_is_still_reported_as_a_button():
+    # Behaviour beats markup: the click handler is checked before the tag.
+    assert derive_role({"tag": "div", "hasClickHandler": True}) == "button"
 
 
 def test_javascript_anchor_is_reported_as_a_button():

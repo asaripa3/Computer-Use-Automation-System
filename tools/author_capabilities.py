@@ -18,6 +18,7 @@ import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TypeVar
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -33,6 +34,20 @@ from surface.browser import browser_session  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[1] / "capabilities"
 RECORDED_AT = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+T = TypeVar("T")
+
+
+def must(node: T | None, what: str) -> T:
+    """Assert the surface layer actually found the control being recorded.
+
+    Authoring silently recording `None` would produce an artifact that only
+    fails when somebody first invokes it.
+    """
+    if node is None:
+        raise SystemExit(f"authoring aborted: {what} was not found on the page")
+    return node
 
 
 def grid_locator(description, column, key_column, key_value, frame="contentFrame"):
@@ -66,33 +81,33 @@ def build(observe_at: str, record_as: str) -> list[Capability]:
     with browser_session() as surface:
         surface.goto(f"{observe_at}/login")
         login = surface.observe()
-        surface.fill(login.field("Operator ID").ref, "svc_agent")
-        surface.fill(login.field("Password").ref, "Demo-Pass-1234")
+        surface.fill(must(login.field("Operator ID"), "the Operator ID field").ref, "svc_agent")
+        surface.fill(must(login.field("Password"), "the Password field").ref, "Demo-Pass-1234")
         surface.click(login.find(role="button", name="Sign On")[0].ref)
 
         surface.goto(f"{observe_at}/console/search")
         search = surface.observe()
         member_no_field = locator_for(
-            search.field("Member Number"), description="the Member Number field on the lookup form"
+            must(search.field("Member Number"), "the Member Number field"), description="the Member Number field on the lookup form"
         )
         search_button = locator_for(
-            search.find(role="button", name="Search")[0], description="the Search button"
+            must(search.find(role="button", name="Search")[0], "the Search button"), description="the Search button"
         )
 
         surface.goto(f"{observe_at}/console/member/12345")
         detail = surface.observe()
         member_name = locator_for(
-            detail.value_cell("Name"), description="the member's name on the detail panel"
+            must(detail.value_cell("Name"), "the member name cell"), description="the member's name on the detail panel"
         )
 
         surface.goto(f"{observe_at}/console/member/12345/subaccount")
         form = surface.observe()
-        acct_type = locator_for(form.field("Account Type"), description="the Account Type list")
-        nickname = locator_for(form.field("Nickname"), description="the Nickname field")
-        deposit = locator_for(form.field("Initial Deposit"), description="the Initial Deposit field")
-        funding = locator_for(form.field("Funding Source"), description="the Funding Source list")
+        acct_type = locator_for(must(form.field("Account Type"), "Account Type"), description="the Account Type list")
+        nickname = locator_for(must(form.field("Nickname"), "Nickname"), description="the Nickname field")
+        deposit = locator_for(must(form.field("Initial Deposit"), "Initial Deposit"), description="the Initial Deposit field")
+        funding = locator_for(must(form.field("Funding Source"), "Funding Source"), description="the Funding Source list")
         continue_button = locator_for(
-            form.find(role="button", name="Continue")[0], description="the Continue button"
+            must(form.find(role="button", name="Continue")[0], "the Continue button"), description="the Continue button"
         )
 
     # -- shared runtime conditions -----------------------------------------
@@ -129,6 +144,31 @@ def build(observe_at: str, record_as: str) -> list[Capability]:
             detect=Condition("text_present", "the expiry notice on the sign-on page",
                              text="Your session has expired"),
             action="reauthenticate",
+            max_attempts=1,
+        ),
+        RecoverySpec(
+            name="servicing_advisory",
+            description=(
+                "An unannounced advisory page appears mid-flow warning that "
+                "the member may already hold a similar product. It is "
+                "informational: acknowledging it continues to the same review "
+                "page the flow was heading for."
+            ),
+            detect=Condition("text_present", "the servicing advisory banner",
+                             text="Servicing Advisory"),
+            action="dismiss",
+            target=Locator(
+                description="the acknowledgement button on the advisory",
+                frame="contentFrame",
+                candidates=(
+                    LocatorCandidate("asserted_id", "asserted", id_kind="field_name",
+                                     id_value="btnAcknowledge",
+                                     rationale="the form field name the application posts back"),
+                    LocatorCandidate("role_and_name", "asserted", role="button",
+                                     name="Acknowledge and Continue", name_source="value",
+                                     rationale="button caption asserted by the application"),
+                ),
+            ),
             max_attempts=1,
         ),
     )
@@ -193,10 +233,16 @@ def build(observe_at: str, record_as: str) -> list[Capability]:
             ),
         ),
         steps=(
-            Step(1, "navigate", "Open the member lookup form.", url=f"{base}/console/search"),
+            Step(1, "navigate", "Open the member lookup form.", url="/console/search"),
             Step(2, "fill", "Enter the member number.",
                  target=member_no_field, value=Value(from_input="member_id")),
-            Step(3, "click", "Run the search.", target=search_button),
+            Step(3, "click", "Run the search.", target=search_button,
+                 # Declared even though the results page is also where a
+                 # not-found answer appears: the outcome check runs first, so
+                 # an empty result returns immediately instead of waiting this
+                 # expectation out.
+                 expect=Condition("text_present", "the results page has loaded",
+                                  text="Search Results")),
             Step(4, "click", "Open the matching member's record.",
                  target=grid_locator(
                      "the Member No cell of the row matching the supplied member number",
@@ -277,17 +323,21 @@ def build(observe_at: str, record_as: str) -> list[Capability]:
             ),
         ),
         steps=(
-            Step(1, "navigate", "Open the sub-account form for the member.",
-                 url=f"{base}/console/search"),
+            Step(1, "navigate", "Open the member lookup form.",
+                 url="/console/search"),
             Step(2, "fill", "Enter the member number.",
                  target=member_no_field, value=Value(from_input="member_id")),
-            Step(3, "click", "Run the search.", target=search_button),
+            Step(3, "click", "Run the search.", target=search_button,
+                 expect=Condition("text_present", "the results page has loaded",
+                                  text="Search Results")),
             Step(4, "click", "Open the matching member's record.",
                  target=grid_locator(
                      "the Member No cell of the row matching the supplied member number",
                      column="Member No", key_column="Member No",
                      key_value=Value(from_input="member_id"),
-                 )),
+                 ),
+                 expect=Condition("text_present", "the member record is on screen",
+                                  text="Share & Deposit Accounts")),
             Step(5, "click", "Start a sub-account request.",
                  target=Locator(
                      "the Open Sub-Account servicing action", frame="contentFrame",
@@ -312,6 +362,9 @@ def build(observe_at: str, record_as: str) -> list[Capability]:
                                   text="Confirm Sub-Account Request")),
             Step(11, "click", "Commit the new share.",
                  risk="irreversible",
+                 # The commit posts a share and waits on the core; the default
+                 # is generous for a page load but not for a transaction.
+                 timeout_ms=30_000,
                  target=Locator(
                      "the Confirm button on the review page", frame="contentFrame",
                      candidates=(

@@ -32,12 +32,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 from .errors import ContractError, require, require_key, require_one_of, require_str
 from .locator import Locator
 from .values import Value
 
 SCHEMA_VERSION = "1.0"
+
+# How long replay waits for a step's expectation to come true before giving
+# up. Waiting is always *for a declared condition*, never a fixed sleep: a
+# sleep is either too short when the application is slow or wasted when it is
+# not, and it cannot tell "still loading" apart from "will never happen".
+DEFAULT_STEP_TIMEOUT_MS = 10_000
+MAX_STEP_TIMEOUT_MS = 120_000
 
 VALUE_TYPES = frozenset({"string", "integer", "money", "date", "boolean", "enum"})
 
@@ -229,6 +237,9 @@ class Step:
     url: str | None = None
     risk: str = "safe"
     expect: Condition | None = None
+    # How long to wait for `expect` to become true. Unset means the
+    # capability's default.
+    timeout_ms: int | None = None
 
     def __post_init__(self) -> None:
         path = f"steps[{self.index}]"
@@ -242,6 +253,13 @@ class Step:
             require(bool(self.url), path, "navigate needs a url")
         if self.action == "assert":
             require(self.expect is not None, path, "assert needs an expectation")
+        if self.timeout_ms is not None:
+            require(
+                0 < self.timeout_ms <= MAX_STEP_TIMEOUT_MS,
+                f"{path}.timeout_ms",
+                f"must be between 1 and {MAX_STEP_TIMEOUT_MS}; an unbounded "
+                f"wait is not a wait strategy, it is a hang",
+            )
 
     @property
     def is_irreversible(self) -> bool:
@@ -267,6 +285,8 @@ class Step:
             out["url"] = self.url
         if self.expect is not None:
             out["expect"] = self.expect.to_dict()
+        if self.timeout_ms is not None:
+            out["timeout_ms"] = self.timeout_ms
         return out
 
     @classmethod
@@ -291,6 +311,7 @@ class Step:
                 url=data.get("url"),
                 risk=data.get("risk", "safe"),
                 expect=Condition.from_dict(expect, f"{path}.expect") if expect else None,
+                timeout_ms=data.get("timeout_ms"),
             )
         except ContractError as exc:
             raise ContractError(exc.path or path, exc.message) from None
@@ -400,6 +421,25 @@ class SurfaceSpec:
     def __post_init__(self) -> None:
         require_one_of(self.kind, SURFACE_KINDS, "surface.kind")
 
+    @property
+    def origin(self) -> str:
+        """Scheme and host the capability runs against.
+
+        Every navigation in a capability is recorded as a *path* and resolved
+        against this. That is what lets one artifact serve hundreds of tenants
+        on different hosts: an overlay changes this one field and the whole
+        flow relocates. An artifact whose steps carried absolute URLs would
+        quietly keep navigating to the institution it was recorded at.
+        """
+        parsed = urlparse(self.entry_url)
+        return f"{parsed.scheme}://{parsed.netloc}"
+
+    def absolute(self, url: str) -> str:
+        """Resolve a recorded path against this surface's origin."""
+        if url.startswith(("http://", "https://")):
+            return url
+        return urljoin(self.origin, url)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "kind": self.kind, "entry_url": self.entry_url,
@@ -462,11 +502,17 @@ class Capability:
     outcomes: tuple[OutcomeSpec, ...] = ()
     recoveries: tuple[RecoverySpec, ...] = ()
     status: str = "draft"
+    default_timeout_ms: int = DEFAULT_STEP_TIMEOUT_MS
     schema_version: str = SCHEMA_VERSION
     provenance: Provenance = field(default_factory=Provenance)
 
     def __post_init__(self) -> None:
         require_one_of(self.status, STATUSES, "status")
+        require(
+            0 < self.default_timeout_ms <= MAX_STEP_TIMEOUT_MS,
+            "default_timeout_ms",
+            f"must be between 1 and {MAX_STEP_TIMEOUT_MS}",
+        )
         self.validate()
 
     # -- cross-field validation -------------------------------------------
@@ -599,6 +645,10 @@ class Capability:
             if s.target is not None and s.target.is_positional_only
         )
 
+    def timeout_for(self, step: Step) -> int:
+        """How long replay should wait on this step."""
+        return step.timeout_ms or self.default_timeout_ms
+
     def required_inputs(self) -> tuple[str, ...]:
         return tuple(i.name for i in self.inputs if i.required)
 
@@ -615,6 +665,7 @@ class Capability:
             "status": self.status,
             "title": self.title,
             "description": self.description,
+            "default_timeout_ms": self.default_timeout_ms,
             "surface": self.surface.to_dict(),
             "inputs": [i.to_dict() for i in self.inputs],
             "outputs": [o.to_dict() for o in self.outputs],
@@ -648,6 +699,7 @@ class Capability:
             id=require_str(data, "id", ""),
             version=require_str(data, "version", ""),
             status=data.get("status", "draft"),
+            default_timeout_ms=int(data.get("default_timeout_ms", DEFAULT_STEP_TIMEOUT_MS)),
             title=require_str(data, "title", ""),
             description=require_str(data, "description", ""),
             surface=SurfaceSpec.from_dict(require_key(data, "surface", ""), "surface"),

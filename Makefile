@@ -39,8 +39,13 @@ test-contract:  ## Only the capability schema tests
 test-policy:  ## Only the guardrail tests (allowlist, risk, redaction)
 	$(PY) -m pytest tests/policy -v
 
-test-fast:  ## Everything except the browser tests
-	$(PY) -m pytest tests/sharebase tests/contract tests/policy tests/surface/test_naming.py tests/surface/test_observation.py
+test-replay:  ## Only the replay tests (drives a real browser; ~3 min)
+	$(PY) -m pytest tests/replay -v
+
+test-fast:  ## Everything except the browser tests (about a second)
+	$(PY) -m pytest tests/sharebase tests/contract tests/policy \
+		tests/surface/test_naming.py tests/surface/test_observation.py \
+		tests/replay/test_resolve.py
 
 # Arm a fault against a running ShareBase, e.g. `make fault F=hard_error`.
 fault:  ## Arm one fault (F=<name>) on a running ShareBase
@@ -65,8 +70,17 @@ capabilities:  ## Re-author the seed capability artifacts from the live app
 review:  ## Print a capability for human review (CAP=<id@version>)
 	@$(PY) -m contract.cli $(CAP)
 
+# Replay a saved capability against a running ShareBase, e.g.
+#   make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"
+replay:  ## Replay a capability (CAP=<id@version> IN="--input k=v")
+	@test -n "$(CAP)" || (echo 'usage: make replay CAP=member.savings_balance@1.0.0 IN="--input member_id=12345"'; exit 1)
+	@$(PY) -m replay.cli $(CAP) $(IN)
+
+evidence:  ## Produce the evidence runs in evidence/
+	$(PY) tools/make_evidence.py
+
 clean:  ## Remove caches and build leftovers
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 	rm -rf .pytest_cache *.egg-info src/*.egg-info
 
-.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-fast fault faults reset clean observe capabilities review
+.PHONY: help install run test test-hostile test-flow test-faults test-surface test-contract test-policy test-replay test-fast fault faults reset clean observe capabilities review replay evidence

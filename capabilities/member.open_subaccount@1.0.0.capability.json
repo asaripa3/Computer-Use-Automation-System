@@ -5,6 +5,7 @@
   "status": "approved",
   "title": "Open a savings sub-account for a member",
   "description": "Open an additional savings share for an existing member and return the new account number and confirmation reference. The final step commits the account and cannot be undone.",
+  "default_timeout_ms": 10000,
   "surface": {
     "kind": "web",
     "entry_url": "http://127.0.0.1:8080/console/search",
@@ -111,9 +112,9 @@
     {
       "index": 1,
       "action": "navigate",
-      "description": "Open the sub-account form for the member.",
+      "description": "Open the member lookup form.",
       "risk": "safe",
-      "url": "http://127.0.0.1:8080/console/search"
+      "url": "/console/search"
     },
     {
       "index": 2,
@@ -206,6 +207,11 @@
             ]
           }
         ]
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "the results page has loaded",
+        "text": "Search Results"
       }
     },
     {
@@ -228,6 +234,11 @@
           }
         ],
         "frame": "contentFrame"
+      },
+      "expect": {
+        "kind": "text_present",
+        "description": "the member record is on screen",
+        "text": "Share & Deposit Accounts"
       }
     },
     {
@@ -527,7 +538,8 @@
         "kind": "text_present",
         "description": "the account was opened",
         "text": "Sub-account opened successfully"
-      }
+      },
+      "timeout_ms": 30000
     }
   ],
   "success": {
@@ -654,10 +666,42 @@
       },
       "action": "reauthenticate",
       "max_attempts": 1
+    },
+    {
+      "name": "servicing_advisory",
+      "description": "An unannounced advisory page appears mid-flow warning that the member may already hold a similar product. It is informational: acknowledging it continues to the same review page the flow was heading for.",
+      "detect": {
+        "kind": "text_present",
+        "description": "the servicing advisory banner",
+        "text": "Servicing Advisory"
+      },
+      "action": "dismiss",
+      "max_attempts": 1,
+      "target": {
+        "description": "the acknowledgement button on the advisory",
+        "candidates": [
+          {
+            "strategy": "asserted_id",
+            "robustness": "asserted",
+            "rationale": "the form field name the application posts back",
+            "id_kind": "field_name",
+            "id_value": "btnAcknowledge"
+          },
+          {
+            "strategy": "role_and_name",
+            "robustness": "asserted",
+            "rationale": "button caption asserted by the application",
+            "role": "button",
+            "name": "Acknowledge and Continue",
+            "name_source": "value"
+          }
+        ],
+        "frame": "contentFrame"
+      }
     }
   ],
   "provenance": {
-    "recorded_at": "2026-09-30T05:48:10+00:00",
+    "recorded_at": "2026-09-30T06:16:07+00:00",
     "recorded_by": "hand-authored from live observation",
     "discovery_run": "",
     "goal": "open a new sub-account for this member and reach the confirmation screen"

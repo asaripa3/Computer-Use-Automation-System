@@ -1,0 +1,58 @@
+{
+  "capability": "member.savings_balance@1.0.0",
+  "tenant": null,
+  "status": "failure",
+  "outputs": {},
+  "outcome": null,
+  "failure": {
+    "kind": "timeout",
+    "step_index": 4,
+    "step_description": "Open the matching member's record.",
+    "expected": "the member detail page has loaded",
+    "observed": "'ShareBase — Application Error' at http://127.0.0.1:8097/console/member/<pii:14c195>",
+    "detail": "waited 10000ms"
+  },
+  "drift": [],
+  "steps": [
+    {
+      "index": 1,
+      "action": "navigate",
+      "description": "Open the member lookup form.",
+      "status": "ok",
+      "duration_ms": 43,
+      "attempts": 1
+    },
+    {
+      "index": 2,
+      "action": "fill",
+      "description": "Enter the member number.",
+      "status": "ok",
+      "duration_ms": 42,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 3,
+      "action": "click",
+      "description": "Run the search.",
+      "status": "ok",
+      "duration_ms": 202,
+      "attempts": 1,
+      "resolved_by": "asserted_id"
+    },
+    {
+      "index": 4,
+      "action": "click",
+      "description": "Open the matching member's record.",
+      "status": "failed",
+      "duration_ms": 10362,
+      "attempts": 1,
+      "resolved_by": "grid_cell"
+    }
+  ],
+  "started_at": "2026-09-30T06:34:21.289+00:00",
+  "finished_at": "2026-09-30T06:34:32.001+00:00",
+  "duration_ms": 10711,
+  "evidence_dir": "/Users/adarsh/Documents/InterfaceAI/evidence/replay-hard-failure",
+  "escalation_id": null
+}

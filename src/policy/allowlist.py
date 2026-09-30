@@ -99,7 +99,7 @@ class Allowlist:
                 reasons.append(f"step {step.index} uses action {step.action!r}, which is not permitted")
             if step.action == "navigate" and step.url:
                 try:
-                    self.check_navigation(step.url)
+                    self.check_navigation(capability.surface.absolute(step.url))
                 except PolicyViolation as exc:
                     reasons.append(f"step {step.index} navigation refused -- {exc.detail}")
 

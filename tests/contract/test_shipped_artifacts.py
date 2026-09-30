@@ -84,3 +84,41 @@ def test_artifacts_record_the_address_the_app_is_actually_served_on(path):
     capability = io.load(path)
     assert capability.surface.entry_url.startswith("http://127.0.0.1:8080")
     assert capability.surface.requires_origins == ("http://127.0.0.1:8080",)
+
+
+@pytest.mark.parametrize("path", ARTIFACTS, ids=lambda p: p.stem)
+def test_every_wait_in_an_artifact_is_bounded(path):
+    # An unbounded wait is not a wait strategy, it is a hang.
+    capability = io.load(path)
+    assert 0 < capability.default_timeout_ms <= 120_000
+    for step in capability.steps:
+        assert 0 < capability.timeout_for(step) <= 120_000
+
+
+def test_the_commit_step_waits_longer_than_a_page_load():
+    # Posting a share goes to the core; the default is generous for a page
+    # load and not for a transaction.
+    subaccount = io.load(CAPABILITIES / "member.open_subaccount@1.0.0.capability.json")
+    commit = subaccount.irreversible_step
+    assert subaccount.timeout_for(commit) > subaccount.default_timeout_ms
+
+
+@pytest.mark.parametrize("path", ARTIFACTS, ids=lambda p: p.stem)
+def test_the_declared_inputs_can_actually_be_bound(path):
+    """The examples in the contract must satisfy the contract.
+
+    An artifact whose own `example` values fail its own patterns is one nobody
+    has ever invoked, and the first caller to try finds out the hard way.
+    """
+    from contract.binding import bind_inputs
+
+    capability = io.load(path)
+    examples = {
+        spec.name: spec.example
+        for spec in capability.inputs
+        if spec.example is not None
+    }
+    assert set(examples) >= set(capability.required_inputs()), (
+        "every required input should carry an example a caller can copy"
+    )
+    bind_inputs(capability, examples)

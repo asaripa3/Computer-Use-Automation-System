@@ -1,0 +1,5 @@
+{"at": "2026-09-30T06:34:20.093+00:00", "event": "start", "capability": "member.savings_balance@1.0.0", "tenant": null, "policy": "read-only", "inputs": {"member_id": "<pii:47f11c>"}}
+{"at": "2026-09-30T06:34:20.151+00:00", "event": "step", "index": 1, "action": "navigate", "description": "Open the member lookup form.", "status": "ok", "duration_ms": 57, "attempts": 1}
+{"at": "2026-09-30T06:34:20.198+00:00", "event": "step", "index": 2, "action": "fill", "description": "Enter the member number.", "status": "ok", "duration_ms": 47, "attempts": 1, "resolved_by": "asserted_id"}
+{"at": "2026-09-30T06:34:20.385+00:00", "event": "step", "index": 3, "action": "click", "description": "Run the search.", "status": "ok", "duration_ms": 186, "attempts": 1, "resolved_by": "asserted_id"}
+{"at": "2026-09-30T06:34:20.385+00:00", "event": "outcome", "code": "MEMBER_NOT_FOUND", "kind": "business", "step": 3}
